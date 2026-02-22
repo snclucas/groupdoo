@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Search - Groupdoo{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Search</h1>
+            <form class="d-flex" method="GET" action="{{ url_for('search') }}">
+                <input class="form-control me-2" type="search" name="q" value="{{ query }}" placeholder="Search groups and events" aria-label="Search">
+                <button class="btn btn-outline-primary" type="submit">
+                    <i class="bi bi-search"></i> Search
+                </button>
+            </form>
+        </div>
+
+        {% if not query %}
+        <div class="alert alert-info">
+            Enter a search term to find groups and events, including tags.
+        </div>
+        {% endif %}
+
+        {% if query %}
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-person-badge"></i> Your Groups & Events
+                    ({{ member_groups|length + member_events|length }})
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if member_groups or member_events %}
+                <div class="list-group list-group-flush">
+                    {% for group in member_groups %}
+                    <a class="list-group-item list-group-item-action" href="{{ url_for('group_view', group_id=group.id) }}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge bg-info me-2">Group</span>
+                                <strong>{{ group.name }}</strong>
+                                <small class="text-muted ms-2">{{ group.group_type|title }}</small>
+                            </div>
+                            <small class="text-muted">
+                                <i class="bi bi-people"></i> {{ group.get_member_count() }} members
+                            </small>
+                        </div>
+                        {% if group.description %}
+                        <small class="text-muted d-block mt-1">{{ group.description[:120] }}{% if group.description|length > 120 %}...{% endif %}</small>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
+                    {% for event in member_events %}
+                    <a class="list-group-item list-group-item-action" href="{{ url_for('event_view', group_id=event.group_id, event_id=event.id) }}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge bg-secondary me-2">Event</span>
+                                <strong>{{ event.name }}</strong>
+                                <small class="text-muted ms-2">{{ event.group.name }}</small>
+                            </div>
+                            <small class="text-muted">
+                                <i class="bi bi-calendar3"></i> {{ event.event_date.strftime('%b %d, %Y') }}
+                            </small>
+                        </div>
+                        {% if event.description %}
+                        <small class="text-muted d-block mt-1">{{ event.description[:120] }}{% if event.description|length > 120 %}...{% endif %}</small>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No matches in your groups or events.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-globe"></i> Public Groups & Events
+                    ({{ public_groups|length + public_events|length }})
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if public_groups or public_events %}
+                <div class="list-group list-group-flush">
+                    {% for group in public_groups %}
+                    <a class="list-group-item list-group-item-action" href="{{ url_for('group_view', group_id=group.id) }}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge bg-info me-2">Group</span>
+                                <strong>{{ group.name }}</strong>
+                                <small class="text-muted ms-2">{{ group.group_type|title }}</small>
+                            </div>
+                            <small class="text-muted">
+                                <i class="bi bi-people"></i> {{ group.get_member_count() }} members
+                            </small>
+                        </div>
+                        {% if group.description %}
+                        <small class="text-muted d-block mt-1">{{ group.description[:120] }}{% if group.description|length > 120 %}...{% endif %}</small>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
+                    {% for event in public_events %}
+                    <a class="list-group-item list-group-item-action" href="{{ url_for('event_view', group_id=event.group_id, event_id=event.id) }}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge bg-secondary me-2">Event</span>
+                                <strong>{{ event.name }}</strong>
+                                <small class="text-muted ms-2">{{ event.group.name }}</small>
+                            </div>
+                            <small class="text-muted">
+                                <i class="bi bi-calendar3"></i> {{ event.event_date.strftime('%b %d, %Y') }}
+                            </small>
+                        </div>
+                        {% if event.description %}
+                        <small class="text-muted d-block mt-1">{{ event.description[:120] }}{% if event.description|length > 120 %}...{% endif %}</small>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No matches in public groups or events.</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

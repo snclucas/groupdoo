@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Groupdoo{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <!-- Flatpickr CSS for date/time picker -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        main {
+            flex: 1;
+        }
+        .navbar-brand {
+            font-weight: bold;
+        }
+        .badge-notification {
+            position: relative;
+            top: -2px;
+        }
+
+        /* Toast Styling */
+        .toast {
+            min-width: 320px;
+            animation: slideIn 0.3s ease-in-out;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border: none;
+            border-left: 4px solid;
+        }
+
+        .toast:nth-child(1) {
+            animation-delay: 0s;
+        }
+        .toast:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+        .toast:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        .toast.bg-success {
+            border-left-color: #198754;
+        }
+        .toast.bg-danger {
+            border-left-color: #dc3545;
+        }
+        .toast.bg-warning {
+            border-left-color: #ffc107;
+        }
+        .toast.bg-info {
+            border-left-color: #0dcaf0;
+        }
+
+        /* Success Toast */
+        .toast:has(.text-success) {
+            background-color: #f0fdf4;
+            border-left-color: #198754;
+        }
+        .toast:has(.text-success) .toast-body {
+            color: #065f46;
+        }
+        .toast:has(.text-success) .toast-header {
+            background-color: #f0fdf4;
+            border-bottom: 1px solid #bbf7d0;
+        }
+
+        /* Danger Toast */
+        .toast:has(.text-danger) {
+            background-color: #fef2f2;
+            border-left-color: #dc3545;
+        }
+        .toast:has(.text-danger) .toast-body {
+            color: #7f1d1d;
+        }
+        .toast:has(.text-danger) .toast-header {
+            background-color: #fef2f2;
+            border-bottom: 1px solid #fecaca;
+        }
+
+        /* Warning Toast */
+        .toast:has(.text-warning) {
+            background-color: #fffbeb;
+            border-left-color: #ffc107;
+        }
+        .toast:has(.text-warning) .toast-body {
+            color: #92400e;
+        }
+        .toast:has(.text-warning) .toast-header {
+            background-color: #fffbeb;
+            border-bottom: 1px solid #fde68a;
+        }
+
+        /* Info Toast */
+        .toast:has(.text-info) {
+            background-color: #f0f9ff;
+            border-left-color: #0dcaf0;
+        }
+        .toast:has(.text-info) .toast-body {
+            color: #0c2d48;
+        }
+        .toast:has(.text-info) .toast-header {
+            background-color: #f0f9ff;
+            border-bottom: 1px solid #bae6fd;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .toast.hide {
+            animation: slideOut 0.3s ease-in-out forwards;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="bi bi-people-fill"></i> Groupdoo
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                {% if current_user.is_authenticated %}
+                <form class="d-flex ms-auto me-3" method="GET" action="{{ url_for('search') }}">
+                    <input class="form-control form-control-sm me-2" type="search" name="q" placeholder="Search" aria-label="Search">
+                    <button class="btn btn-sm btn-outline-light" type="submit">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </form>
+                {% endif %}
+                <ul class="navbar-nav ms-auto">
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('dashboard') }}">
+                                <i class="bi bi-speedometer2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('groups_list') }}">
+                                <i class="bi bi-grid-3x3-gap"></i> Groups
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('invitations_list') }}">
+                                <i class="bi bi-envelope"></i> Invitations
+                                {% if pending_invitation_count > 0 %}
+                                <span class="badge bg-danger badge-notification">{{ pending_invitation_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle"></i> {{ current_user.username }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item text-danger" href="{{ url_for('account_delete') }}">
+                                        <i class="bi bi-trash"></i> Delete Account
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('logout') }}">
+                                        <i class="bi bi-box-arrow-right"></i> Logout
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('login') }}">
+                                <i class="bi bi-box-arrow-in-right"></i> Login
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('register') }}">
+                                <i class="bi bi-person-plus"></i> Register
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="toast-header">
+                            {% if category == 'success' %}
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            {% elif category == 'danger' %}
+                                <i class="bi bi-exclamation-circle-fill text-danger me-2"></i>
+                            {% elif category == 'warning' %}
+                                <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+                            {% elif category == 'info' %}
+                                <i class="bi bi-info-circle-fill text-info me-2"></i>
+                            {% endif %}
+                            <strong class="me-auto">{{ category|title }}</strong>
+                            <small>just now</small>
+                            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                        <div class="toast-body">
+                            {{ message }}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <main class="py-4">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer class="bg-light py-3 mt-auto">
+        <div class="container text-center text-muted">
+            <small>&copy; 2026 Groupdoo. All rights reserved.</small>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Flatpickr JS for date/time picker -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        // Initialize date/time pickers
+        document.addEventListener('DOMContentLoaded', function() {
+            // Date picker
+            const eventDateInput = document.getElementById('event_date');
+            if (eventDateInput) {
+                flatpickr(eventDateInput, {
+                    dateFormat: 'Y-m-d',
+                    placeholder: 'Select event date'
+                });
+            }
+
+            // Time picker
+            const eventTimeInput = document.getElementById('event_time');
+            if (eventTimeInput) {
+                flatpickr(eventTimeInput, {
+                    enableTime: true,
+                    noCalendar: true,
+                    dateFormat: 'H:i',
+                    time_24hr: true,
+                    placeholder: 'Select event time'
+                });
+            }
+
+            // Auto-dismiss toasts after 5 seconds
+            const toasts = document.querySelectorAll('.toast');
+            toasts.forEach(toastElement => {
+                const bsToast = new bootstrap.Toast(toastElement, {
+                    autohide: true,
+                    delay: 5000
+                });
+                bsToast.show();
+            });
+        });
+    </script>
+</body>
+</html>
+

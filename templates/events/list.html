@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}{{ group.name }} - Events - Groupdoo{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1><i class="bi bi-calendar-event"></i> Events</h1>
+                <p class="text-muted">{{ group.name }}</p>
+            </div>
+            {% if group.is_owner(current_user) or group.is_member(current_user) %}
+            <a href="{{ url_for('event_create', group_id=group.id) }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Create Event
+            </a>
+            {% endif %}
+        </div>
+
+        {% if events %}
+        <div class="row">
+            {% for event in events %}
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            {{ event.name }}
+                            {% if event.event_date > current_time %}
+                            <span class="badge bg-info">Upcoming</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Past</span>
+                            {% endif %}
+                        </h5>
+
+                        <p class="card-text text-muted">
+                            <i class="bi bi-calendar3"></i>
+                            {{ event.event_date.strftime('%B %d, %Y at %I:%M %p') }}
+                        </p>
+
+                        <p class="card-text">
+                            <i class="bi bi-geo-alt"></i>
+                            <strong>{{ event.location_name }}</strong><br>
+                            <small class="text-muted">{{ event.address }}</small>
+                        </p>
+
+                        {% if event.description %}
+                        <p class="card-text text-muted">
+                            {{ event.description[:100] }}{% if event.description|length > 100 %}...{% endif %}
+                        </p>
+                        {% endif %}
+
+                        <div class="d-flex gap-1 mb-2">
+                            {% set going_count = event.get_going_users()|length %}
+                            {% set interested_count = event.get_interested_users()|length %}
+                            {% if going_count > 0 %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle"></i> {{ going_count }} going
+                            </span>
+                            {% endif %}
+                            {% if interested_count > 0 %}
+                            <span class="badge bg-warning">
+                                <i class="bi bi-star"></i> {{ interested_count }} interested
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <a href="{{ url_for('event_view', group_id=group.id, event_id=event.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i> View Details
+                        </a>
+                        {% if event.created_by_id == current_user.id or group.is_owner(current_user) %}
+                        <a href="{{ url_for('event_edit', group_id=group.id, event_id=event.id) }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                        <form method="POST" action="{{ url_for('event_delete', group_id=group.id, event_id=event.id) }}" style="display: inline;" onsubmit="return confirm('Delete this event?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i> Delete
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-calendar display-1 text-muted"></i>
+                <h4 class="mt-3">No Events Yet</h4>
+                <p class="text-muted">There are no events scheduled for this group.</p>
+                {% if group.is_owner(current_user) or group.is_member(current_user) %}
+                <a href="{{ url_for('event_create', group_id=group.id) }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Create First Event
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="mt-4">
+            <a href="{{ url_for('group_view', group_id=group.id) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Group
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Create Event - Groupdoo{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-body">
+                <h2 class="card-title mb-4">
+                    <i class="bi bi-plus-circle"></i> Create New Event
+                </h2>
+                <p class="text-muted mb-4">Group: <strong>{{ group.name }}</strong></p>
+
+                <form method="POST" action="{{ url_for('event_create', group_id=group.id) }}">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="e.g., Kids Play Zone Outing") }}
+                        {% if form.name.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.name.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""), rows="4", placeholder="Describe the event...") }}
+                        {% if form.description.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.description.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Optional, max 1000 characters</small>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form.event_date.label(class="form-label") }}
+                            {{ form.event_date(class="form-control" + (" is-invalid" if form.event_date.errors else ""), placeholder="YYYY-MM-DD", id="event_date") }}
+                            {% if form.event_date.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.event_date.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            {{ form.event_time.label(class="form-label") }}
+                            {{ form.event_time(class="form-control" + (" is-invalid" if form.event_time.errors else ""), placeholder="HH:MM", id="event_time") }}
+                            {% if form.event_time.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.event_time.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            {{ form.location_name.label(class="form-label") }}
+                            {{ form.location_name(class="form-control" + (" is-invalid" if form.location_name.errors else ""), placeholder="e.g., Kids Play Zone") }}
+                            {% if form.location_name.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.location_name.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.address.label(class="form-label") }}
+                        {{ form.address(class="form-control" + (" is-invalid" if form.address.errors else ""), placeholder="e.g., 123 Main St, City, State 12345") }}
+                        {% if form.address.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.address.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.url.label(class="form-label") }}
+                        {{ form.url(class="form-control" + (" is-invalid" if form.url.errors else ""), placeholder="e.g., https://example.com/event") }}
+                        {% if form.url.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.url.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Optional. Link to event details or registration page</small>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.cost.label(class="form-label") }}
+                        <div class="input-group">
+                            <span class="input-group-text">{{ currency_symbol }}</span>
+                            {{ form.cost(class="form-control" + (" is-invalid" if form.cost.errors else ""), placeholder="0.00", step="0.01", min="0") }}
+                        </div>
+                        {% if form.cost.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.cost.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Optional. Approximate cost in {{ currency_code }}</small>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.parking_difficulty.label(class="form-label") }}
+                        {{ form.parking_difficulty(class="form-select" + (" is-invalid" if form.parking_difficulty.errors else "")) }}
+                        {% if form.parking_difficulty.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.parking_difficulty.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Optional. Help attendees know about parking availability</small>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.category.label(class="form-label") }}
+                        {{ form.category(class="form-select" + (" is-invalid" if form.category.errors else "")) }}
+                        {% if form.category.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.category.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Optional. Categorize the event</small>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.space.label(class="form-label") }}
+                        {{ form.space(class="form-select" + (" is-invalid" if form.space.errors else "")) }}
+                        {% if form.space.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.space.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Optional. Specify if event is indoors, outdoors, or both</small>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.tags.label(class="form-label") }}
+                        {{ form.tags(class="form-control" + (" is-invalid" if form.tags.errors else ""), placeholder="e.g., family, outdoor, fun") }}
+                        {% if form.tags.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.tags.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Optional. Comma-separated tags (e.g., family, outdoor, fun)</small>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        {{ form.submit(class="btn btn-primary") }}
+                        <a href="{{ url_for('events_list', group_id=group.id) }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

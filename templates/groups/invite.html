@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Invite to {{ group.name }} - Groupdoo{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-body">
+                <h2 class="card-title mb-4">
+                    <i class="bi bi-person-plus"></i> Invite User to {{ group.name }}
+                </h2>
+
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    Enter the username of the person you want to invite. They will receive a notification and can accept or reject the invitation.
+                </div>
+
+                <form method="POST" action="{{ url_for('group_invite', group_id=group.id) }}">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        {{ form.username.label(class="form-label") }}
+                        {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else ""), placeholder="Enter username") }}
+                        {% if form.username.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.username.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        {{ form.submit(class="btn btn-success") }}
+                        <a href="{{ url_for('group_view', group_id=group.id) }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">Group Information</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Name:</strong> {{ group.name }}</p>
+                <p><strong>Type:</strong> {{ group.group_type|title }}</p>
+                <p><strong>Members:</strong> {{ group.get_member_count() }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Groupdoo{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Dashboard</h1>
+            <div class="btn-group">
+                <a href="{{ url_for('group_create') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Create New Group
+                </a>
+                <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#joinTokenCard" aria-expanded="false" aria-controls="joinTokenCard">
+                    <i class="bi bi-box-arrow-in-right"></i> Join Group
+                </button>
+            </div>
+        </div>
+
+        <!-- Pending Invitations -->
+        {% if pending_invitations %}
+        <div class="card mb-4 border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="bi bi-envelope"></i> Pending Invitations ({{ pending_invitations|length }})
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for invitation in pending_invitations %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ invitation.group.name }}</h6>
+                            <small class="text-muted">
+                                Invited by {{ invitation.inviter.username }} •
+                                {{ invitation.created_at.strftime('%B %d, %Y') }}
+                            </small>
+                            <p class="mb-1 mt-2"><strong>Type:</strong> {{ invitation.group.group_type|title }}</p>
+                            {% if invitation.group.description %}
+                            <p class="mb-0 text-muted">{{ invitation.group.description[:100] }}{% if invitation.group.description|length > 100 %}...{% endif %}</p>
+                            {% endif %}
+                        </div>
+                        <div class="btn-group">
+                            <form method="POST" action="{{ url_for('invitation_accept', invitation_id=invitation.id) }}" style="display: inline;">
+                                <button type="submit" class="btn btn-success btn-sm">Accept</button>
+                            </form>
+                            <form method="POST" action="{{ url_for('invitation_reject', invitation_id=invitation.id) }}" style="display: inline;">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">Reject</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Notifications -->
+        {% if notifications %}
+        <div class="card mb-4 border-secondary">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-bell"></i> Notifications ({{ notifications|length }})
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for notification in notifications %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span>{{ notification.message }}</span>
+                            <small class="text-muted">{{ notification.created_at.strftime('%B %d, %Y %I:%M %p') }}</small>
+                        </div>
+                        {% if notification.event_id %}
+                        <div class="mt-2 d-flex gap-2">
+                            <a href="{{ url_for('event_view', group_id=notification.event.group_id, event_id=notification.event_id) }}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-eye"></i> View Event
+                            </a>
+                            <form method="POST" action="{{ url_for('notification_dismiss', notification_id=notification.id) }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-x-circle"></i> Dismiss
+                                </button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <div class="mt-2">
+                            <form method="POST" action="{{ url_for('notification_dismiss', notification_id=notification.id) }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-x-circle"></i> Dismiss
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Join by Invite Token -->
+        <div class="card mb-4 collapse" id="joinTokenCard">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-key"></i> Join with Invite Token
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('group_join_from_dashboard') }}">
+                    <div class="mb-3">
+                        <label class="form-label" for="invite_token">Invite link or token</label>
+                        <input type="text" id="invite_token" name="invite_token" class="form-control" placeholder="Paste invite link or token" required>
+                        <small class="form-text text-muted">Paste the full invite link or just the token.</small>
+                    </div>
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="bi bi-box-arrow-in-right"></i> Join Group
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Upcoming Events -->
+        {% if upcoming_events %}
+        <div class="card mb-4 border-info">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-calendar-event"></i> Upcoming Events ({{ upcoming_events|length }})
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for event in upcoming_events %}
+                    <div class="list-group-item">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h6 class="mb-1">{{ event.name }}</h6>
+                                <p class="mb-2">
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar3"></i> {{ event.event_date.strftime('%A, %B %d at %I:%M %p') }}
+                                    </small>
+                                </p>
+                                <p class="mb-1">
+                                    <small>
+                                        <i class="bi bi-geo-alt"></i> <strong>{{ event.location_name }}</strong><br>
+                                        <span class="ms-3 text-muted">{{ event.address }}</span>
+                                    </small>
+                                </p>
+                                <p class="mb-0">
+                                    <small class="text-muted">
+                                        Group: <strong>{{ event.group.name }}</strong>
+                                    </small>
+                                </p>
+                                <div class="d-flex gap-1 mt-2">
+                                    {% set going_count = event.get_going_users()|length %}
+                                    {% set interested_count = event.get_interested_users()|length %}
+                                    {% if going_count > 0 %}
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-check-circle"></i> {{ going_count }} going
+                                    </span>
+                                    {% endif %}
+                                    {% if interested_count > 0 %}
+                                    <span class="badge bg-warning">
+                                        <i class="bi bi-star"></i> {{ interested_count }} interested
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <a href="{{ url_for('event_view', group_id=event.group_id, event_id=event.id) }}" class="btn btn-sm btn-outline-info">
+                                    <i class="bi bi-eye"></i> View Event
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Owned Groups -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-star"></i> Your groups ({{ owned_groups|length }})</h5>
+            </div>
+            <div class="card-body">
+                {% if owned_groups %}
+                <div class="row">
+                    {% for group in owned_groups %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h6 class="card-title">{{ group.name }}</h6>
+                                    <span class="badge bg-info">{{ group.group_type|title }}</span>
+                                </div>
+                                {% if group.description %}
+                                <p class="card-text text-muted small">{{ group.description[:80] }}{% if group.description|length > 80 %}...{% endif %}</p>
+                                {% endif %}
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        <i class="bi bi-people"></i> {{ group.get_member_count() }} members
+                                        {% if group.is_public %}
+                                        <span class="badge bg-success ms-1">Public</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary ms-1">Private</span>
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-transparent">
+                                <a href="{{ url_for('group_view', group_id=group.id) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                <a href="{{ url_for('group_edit', group_id=group.id) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                <a href="{{ url_for('group_invite', group_id=group.id) }}" class="btn btn-sm btn-outline-success">Invite</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">You haven't created any groups yet. <a href="{{ url_for('group_create') }}">Create your first group!</a></p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Member Groups -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="bi bi-people"></i> Groups You're In ({{ member_groups|length }})</h5>
+            </div>
+            <div class="card-body">
+                {% if member_groups %}
+                <div class="row">
+                    {% for group in member_groups %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h6 class="card-title">{{ group.name }}</h6>
+                                    <span class="badge bg-info">{{ group.group_type|title }}</span>
+                                </div>
+                                {% if group.description %}
+                                <p class="card-text text-muted small">{{ group.description[:80] }}{% if group.description|length > 80 %}...{% endif %}</p>
+                                {% endif %}
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        Owner: {{ group.owner.username }} •
+                                        <i class="bi bi-people"></i> {{ group.get_member_count() }} members
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-transparent">
+                                <a href="{{ url_for('group_view', group_id=group.id) }}" class="btn btn-sm btn-outline-primary">View</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">You haven't joined any groups yet. <a href="{{ url_for('groups_list') }}">Browse public groups</a></p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Quick Actions</h6>
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('group_create') }}" class="btn btn-outline-primary">Create Group</a>
+                    <a href="{{ url_for('groups_list') }}" class="btn btn-outline-secondary">Browse Groups</a>
+                    <a href="{{ url_for('invitations_list') }}" class="btn btn-outline-info">
+                        View Invitations
+                        {% if pending_invitation_count > 0 %}
+                        <span class="badge bg-danger">{{ pending_invitation_count }}</span>
+                        {% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
