@@ -5,13 +5,13 @@
 {% block content %}
 <div class="row mt-4">
     <div class="col-md-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>Dashboard</h1>
-            <div class="btn-group">
-                <a href="{{ url_for('group_create') }}" class="btn btn-primary">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-2">
+            <h1 class="mb-0">Dashboard</h1>
+            <div class="btn-group w-100 w-md-auto">
+                <a href="{{ url_for('group_create') }}" class="btn btn-primary w-100 w-md-auto">
                     <i class="bi bi-plus-circle"></i> Create New Group
                 </a>
-                <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#joinTokenCard" aria-expanded="false" aria-controls="joinTokenCard">
+                <button class="btn btn-outline-primary w-100 w-md-auto" type="button" data-bs-toggle="collapse" data-bs-target="#joinTokenCard" aria-expanded="false" aria-controls="joinTokenCard">
                     <i class="bi bi-box-arrow-in-right"></i> Join Group
                 </button>
             </div>
@@ -28,7 +28,7 @@
             <div class="card-body">
                 <div class="list-group list-group-flush">
                     {% for invitation in pending_invitations %}
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div class="list-group-item d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
                         <div>
                             <h6 class="mb-1">{{ invitation.group.name }}</h6>
                             <small class="text-muted">
@@ -67,12 +67,12 @@
                 <div class="list-group list-group-flush">
                     {% for notification in notifications %}
                     <div class="list-group-item">
-                        <div class="d-flex justify-content-between">
+                        <div class="d-flex flex-column flex-md-row justify-content-between gap-1">
                             <span>{{ notification.message }}</span>
                             <small class="text-muted">{{ notification.created_at.strftime('%B %d, %Y %I:%M %p') }}</small>
                         </div>
                         {% if notification.event_id %}
-                        <div class="mt-2 d-flex gap-2">
+                        <div class="mt-2 d-flex flex-column flex-sm-row gap-2">
                             <a href="{{ url_for('event_view', group_id=notification.event.group_id, event_id=notification.event_id) }}" class="btn btn-sm btn-outline-secondary">
                                 <i class="bi bi-eye"></i> View Event
                             </a>
@@ -131,8 +131,8 @@
                 <div class="list-group list-group-flush">
                     {% for event in upcoming_events %}
                     <div class="list-group-item">
-                        <div class="row align-items-center">
-                            <div class="col-md-8">
+                        <div class="row align-items-start align-items-md-center">
+                            <div class="col-12 col-md-8">
                                 <h6 class="mb-1">{{ event.name }}</h6>
                                 <p class="mb-2">
                                     <small class="text-muted">
@@ -165,8 +165,8 @@
                                     {% endif %}
                                 </div>
                             </div>
-                            <div class="col-md-4 text-end">
-                                <a href="{{ url_for('event_view', group_id=event.group_id, event_id=event.id) }}" class="btn btn-sm btn-outline-info">
+                            <div class="col-12 col-md-4 text-start text-md-end mt-2 mt-md-0">
+                                <a href="{{ url_for('event_view', group_id=event.group_id, event_id=event.id) }}" class="btn btn-sm btn-outline-info w-100 w-md-auto">
                                     <i class="bi bi-eye"></i> View Event
                                 </a>
                             </div>
@@ -266,10 +266,10 @@
         <div class="card">
             <div class="card-body">
                 <h6 class="card-title">Quick Actions</h6>
-                <div class="btn-group" role="group">
-                    <a href="{{ url_for('group_create') }}" class="btn btn-outline-primary">Create Group</a>
-                    <a href="{{ url_for('groups_list') }}" class="btn btn-outline-secondary">Browse Groups</a>
-                    <a href="{{ url_for('invitations_list') }}" class="btn btn-outline-info">
+                <div class="btn-group w-100 w-md-auto" role="group">
+                    <a href="{{ url_for('group_create') }}" class="btn btn-outline-primary w-100 w-md-auto">Create Group</a>
+                    <a href="{{ url_for('groups_list') }}" class="btn btn-outline-secondary w-100 w-md-auto">Browse Groups</a>
+                    <a href="{{ url_for('invitations_list') }}" class="btn btn-outline-info w-100 w-md-auto">
                         View Invitations
                         {% if pending_invitation_count > 0 %}
                         <span class="badge bg-danger">{{ pending_invitation_count }}</span>

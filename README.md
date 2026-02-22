@@ -191,6 +191,31 @@ To make changes:
 - Ensure templates are in the `templates/` folder
 - Check file names match the routes
 
+## Database Backups
+
+Use the built-in backup tool to regularly snapshot the database and restore it if needed.
+
+Backup to JSON:
+```powershell
+python backup_db.py backup --output backups\groupdoo_backup.json
+```
+
+Backup to compressed JSON:
+```powershell
+python backup_db.py backup --output backups\groupdoo_backup.json.gz --compress
+```
+
+Restore from backup:
+```powershell
+python backup_db.py restore --input backups\groupdoo_backup.json
+```
+
+Dry run (safe test):
+```powershell
+python backup_db.py backup --output backup.json --dry-run
+python backup_db.py restore --input backup.json --dry-run
+```
+
 ## License
 
 This project is provided as-is for educational purposes.
