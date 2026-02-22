@@ -133,6 +133,168 @@
     </style>
 </head>
 <body>
+    <!-- GDPR Consent Banner -->
+    <div id="gdprConsentBanner" class="gdpr-consent-banner">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <p class="mb-0">
+                        <i class="bi bi-shield-check"></i>
+                        <strong>Privacy & Cookies:</strong> We use cookies and analytics to improve your experience.
+                        <a href="{{ url_for('gdpr_privacy') }}" class="text-white text-decoration-underline">Learn more about your privacy rights</a>.
+                    </p>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <button id="gdprAccept" class="btn btn-sm btn-success me-2">
+                        <i class="bi bi-check-circle"></i> Accept
+                    </button>
+                    {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('gdpr_consent') }}" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-sliders"></i> Manage
+                    </a>
+                    {% else %}
+                    <button id="gdprDismiss" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-x-circle"></i> Dismiss
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .gdpr-consent-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 999;
+            display: none;
+        }
+
+        .gdpr-consent-banner.show {
+            display: block;
+            animation: slideUp 0.3s ease-in-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .gdpr-consent-banner a {
+            color: white;
+        }
+
+        .gdpr-consent-banner .btn-outline-light {
+            color: white;
+            border-color: white;
+        }
+
+        .gdpr-consent-banner .btn-outline-light:hover {
+            background-color: white;
+            color: #667eea;
+        }
+    </style>
+
+    <script>
+        // GDPR Consent Banner Logic - Per User Tracking
+        document.addEventListener('DOMContentLoaded', function() {
+            const consentBanner = document.getElementById('gdprConsentBanner');
+            const acceptBtn = document.getElementById('gdprAccept');
+            const dismissBtn = document.getElementById('gdprDismiss');
+            const isAuthenticated = {{ 'true' if current_user.is_authenticated else 'false' }};
+
+            // Function to show banner
+            function showBanner() {
+                setTimeout(() => {
+                    consentBanner.classList.add('show');
+                }, 500);
+            }
+
+            // Function to hide banner
+            function hideBanner() {
+                consentBanner.classList.remove('show');
+            }
+
+            // Check if user has accepted banner consent
+            function checkConsent() {
+                if (isAuthenticated) {
+                    // For authenticated users, check server-side consent
+                    fetch('{{ url_for("gdpr_banner_check") }}')
+                        .then(response => response.json())
+                        .then(data => {
+                            if (!data.accepted) {
+                                showBanner();
+                            }
+                        })
+                        .catch(error => console.error('Error checking consent:', error));
+                } else {
+                    // For guests, check localStorage
+                    const localConsent = localStorage.getItem('groupdoo_gdpr_banner_consent');
+                    if (!localConsent) {
+                        showBanner();
+                    }
+                }
+            }
+
+            // Accept button handler
+            if (acceptBtn) {
+                acceptBtn.addEventListener('click', function() {
+                    if (isAuthenticated) {
+                        // Send consent to server for authenticated users
+                        fetch('{{ url_for("gdpr_banner_accept") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCSRFToken()
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            hideBanner();
+                            console.log('Consent recorded for user');
+                        })
+                        .catch(error => console.error('Error saving consent:', error));
+                    } else {
+                        // For guests, use localStorage
+                        localStorage.setItem('groupdoo_gdpr_banner_consent', 'accepted');
+                        hideBanner();
+                        console.log('Consent recorded locally for guest');
+                    }
+                });
+            }
+
+            // Dismiss button handler (guests only)
+            if (dismissBtn) {
+                dismissBtn.addEventListener('click', function() {
+                    localStorage.setItem('groupdoo_gdpr_banner_consent', 'dismissed');
+                    hideBanner();
+                });
+            }
+
+            // Helper function to get CSRF token from cookie or meta tag
+            function getCSRFToken() {
+                // Try to get from meta tag first
+                const metaTag = document.querySelector('meta[name="csrf-token"]');
+                if (metaTag) {
+                    return metaTag.getAttribute('content');
+                }
+                // Fallback to empty string (Flask will handle it)
+                return '';
+            }
+
+            // Check consent on page load
+            checkConsent();
+        });
+    </script>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">
@@ -240,9 +402,30 @@
         </div>
     </main>
 
-    <footer class="bg-light py-3 mt-auto">
-        <div class="container text-center text-muted">
-            <small>&copy; 2026 Groupdoo. All rights reserved.</small>
+    <footer class="bg-light py-4 mt-auto border-top">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 text-muted small">
+                    <small>&copy; 2026 Groupdoo. All rights reserved.</small>
+                </div>
+                <div class="col-md-6 text-md-end text-muted small">
+                    <a href="{{ url_for('gdpr_privacy') }}" class="text-muted text-decoration-none me-3">
+                        <i class="bi bi-shield-lock"></i> Privacy
+                    </a>
+                    {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('gdpr_consent') }}" class="text-muted text-decoration-none me-3">
+                        <i class="bi bi-hand-thumbs-up"></i> Consent
+                    </a>
+                    <a href="{{ url_for('gdpr_export') }}" class="text-muted text-decoration-none">
+                        <i class="bi bi-download"></i> Export Data
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('login') }}" class="text-muted text-decoration-none">
+                        <i class="bi bi-door-closed"></i> Login to manage data
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </footer>
 

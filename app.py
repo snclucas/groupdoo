@@ -1280,6 +1280,65 @@ def generate_unique_slug(model, base_slug, exclude_id=None):
 # GDPR ROUTES
 # ============================================================================
 
+@app.route('/gdpr/banner-check', methods=['GET'])
+def gdpr_banner_check():
+    """Check if user has accepted GDPR banner - works for both authenticated and guest users"""
+    from models import GDPRConsent
+
+    if current_user.is_authenticated:
+        # Check user's database consent
+        banner_consent = GDPRConsent.query.filter_by(
+            user_id=current_user.id,
+            consent_type='banner',
+            consented=True
+        ).first()
+        return {
+            'accepted': banner_consent is not None,
+            'type': 'user'
+        }
+    else:
+        # For guests, return info that we'll check localStorage
+        return {
+            'accepted': False,
+            'type': 'guest'
+        }
+
+
+@app.route('/gdpr/banner-accept', methods=['POST'])
+@login_required
+def gdpr_banner_accept():
+    """Accept GDPR banner consent - sets banner_consent flag for user"""
+    from models import GDPRConsent
+
+    # Check if banner consent already exists
+    banner_consent = GDPRConsent.query.filter_by(
+        user_id=current_user.id,
+        consent_type='banner'
+    ).first()
+
+    if not banner_consent:
+        # Create new banner consent record
+        banner_consent = GDPRConsent(
+            user_id=current_user.id,
+            consent_type='banner',
+            consented=True,
+            consented_at=datetime.utcnow(),
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent', '')[:255]
+        )
+        db.session.add(banner_consent)
+    else:
+        # Update existing consent
+        banner_consent.consented = True
+        banner_consent.consented_at = datetime.utcnow()
+        banner_consent.ip_address = request.remote_addr
+
+    db.session.commit()
+    log_audit('banner_consent_accepted', 'User accepted GDPR banner', user_id=current_user.id)
+
+    return {'status': 'success', 'message': 'Consent recorded'}, 200
+
+
 @app.route('/gdpr/privacy')
 def gdpr_privacy():
     """Privacy policy and GDPR information page"""
@@ -1581,3 +1640,4 @@ def gdpr_delete_cancel(token):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
