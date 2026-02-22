@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Request Data Export - Groupdoo{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="mb-4"><i class="bi bi-download"></i> Request Data Export</h1>
+
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> <strong>GDPR Article 20 (Right to Data Portability):</strong> Download a copy of all your personal data in a portable format.
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-primary">
+                            <h6 class="mb-0 text-white"><i class="bi bi-file-earmark-pdf"></i> Export Your Data</h6>
+                        </div>
+                        <div class="card-body">
+                            <p>Request a complete export of your personal data. Your data will be available for download for 30 days.</p>
+                            <form method="POST">
+                                <div class="mb-3">
+                                    <label for="format" class="form-label">Export Format</label>
+                                    <select class="form-select" name="format" id="format">
+                                        <option value="json" selected>JSON</option>
+                                        <option value="csv">CSV</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-download"></i> Request Export
+                                </button>
+                            </form>
+                            <hr>
+                            <small class="text-muted">
+                                Includes: Account data, groups, events, invitations, responses, and activity logs.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="bi bi-clock-history"></i> What's Included</h6>
+                        </div>
+                        <div class="card-body">
+                            <ul class="small">
+                                <li>Account information (username, email)</li>
+                                <li>All groups you created</li>
+                                <li>All groups you're a member of</li>
+                                <li>All events you created</li>
+                                <li>Your event responses (RSVP)</li>
+                                <li>Invitations sent and received</li>
+                                <li>Activity audit logs</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if exports %}
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-list-check"></i> Your Export Requests</h6>
+                </div>
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Requested</th>
+                                <th>Status</th>
+                                <th>Format</th>
+                                <th>Expires</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for export in exports %}
+                            <tr>
+                                <td>{{ export.requested_at.strftime('%b %d, %Y %H:%M') }}</td>
+                                <td>
+                                    {% if export.status == 'completed' %}
+                                    <span class="badge bg-success">Completed</span>
+                                    {% elif export.status == 'pending' %}
+                                    <span class="badge bg-warning">Pending</span>
+                                    {% elif export.status == 'expired' %}
+                                    <span class="badge bg-danger">Expired</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ export.status|title }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ export.export_format|upper }}</td>
+                                <td>{{ export.expires_at.strftime('%b %d, %Y') if export.expires_at else '-' }}</td>
+                                <td>
+                                    {% if export.status == 'completed' %}
+                                    <a href="{{ url_for('gdpr_export_download', token=export.download_token) }}" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-download"></i> Download
+                                    </a>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

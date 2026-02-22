@@ -63,3 +63,15 @@ class Config:
 
     # Audit log retention (days)
     AUDIT_LOG_RETENTION_DAYS = int(os.environ.get('AUDIT_LOG_RETENTION_DAYS', '90'))
+
+    # GDPR Configuration
+    GDPR_DATA_EXPORT_EXPIRY_DAYS = int(os.environ.get('GDPR_DATA_EXPORT_EXPIRY_DAYS', '30'))  # How long to keep exported data available
+    GDPR_DOWNLOAD_TOKEN_EXPIRY_HOURS = int(os.environ.get('GDPR_DOWNLOAD_TOKEN_EXPIRY_HOURS', '24'))  # How long download token is valid
+    GDPR_DELETION_CONFIRMATION_HOURS = int(os.environ.get('GDPR_DELETION_CONFIRMATION_HOURS', '24'))  # Time to confirm deletion before it happens
+    GDPR_MAX_DATA_EXPORT_REQUESTS_PER_DAY = int(os.environ.get('GDPR_MAX_DATA_EXPORT_REQUESTS_PER_DAY', '3'))  # Rate limit
+    GDPR_CONSENT_TYPES = [
+        'marketing_emails',
+        'analytics',
+        'third_party_sharing'
+    ]
+

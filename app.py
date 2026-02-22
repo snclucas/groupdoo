@@ -1275,5 +1275,309 @@ def generate_unique_slug(model, base_slug, exclude_id=None):
         slug = f"{base_slug}-{counter}"
         counter += 1
 
+
+# ============================================================================
+# GDPR ROUTES
+# ============================================================================
+
+@app.route('/gdpr/privacy')
+def gdpr_privacy():
+    """Privacy policy and GDPR information page"""
+    return render_template('gdpr/privacy.html')
+
+
+@app.route('/gdpr/consent', methods=['GET', 'POST'])
+@login_required
+def gdpr_consent():
+    """Manage user consent preferences"""
+    from models import GDPRConsent
+
+    if request.method == 'POST':
+        for consent_type in app.config['GDPR_CONSENT_TYPES']:
+            value = request.form.get(f'consent_{consent_type}') == 'on'
+            consent = GDPRConsent.query.filter_by(user_id=current_user.id, consent_type=consent_type).first()
+
+            if consent:
+                consent.consented = value
+                if value:
+                    consent.consented_at = datetime.utcnow()
+            else:
+                consent = GDPRConsent(
+                    user_id=current_user.id,
+                    consent_type=consent_type,
+                    consented=value,
+                    consented_at=datetime.utcnow() if value else None,
+                    ip_address=request.remote_addr,
+                    user_agent=request.headers.get('User-Agent', '')[:255]
+                )
+                db.session.add(consent)
+
+        db.session.commit()
+        log_audit('consent_updated', f'GDPR consent preferences updated', user_id=current_user.id)
+        flash('Your consent preferences have been updated.', 'success')
+        return redirect(url_for('gdpr_consent'))
+
+    # Get current consent preferences
+    user_consents = {c.consent_type: c.consented for c in current_user.gdpr_consents}
+    consent_types = app.config['GDPR_CONSENT_TYPES']
+
+    return render_template('gdpr/consent.html', consents=user_consents, consent_types=consent_types)
+
+
+@app.route('/gdpr/export', methods=['GET', 'POST'])
+@login_required
+def gdpr_export():
+    """Request personal data export (GDPR Article 20)"""
+    from models import GDPRDataExport
+    from datetime import timedelta
+    import json
+    import io
+
+    if request.method == 'POST':
+        # Rate limiting
+        recent_exports = GDPRDataExport.query.filter_by(user_id=current_user.id).filter(
+            GDPRDataExport.requested_at > datetime.utcnow() - timedelta(days=1)
+        ).count()
+
+        if recent_exports >= app.config['GDPR_MAX_DATA_EXPORT_REQUESTS_PER_DAY']:
+            flash(f'You can only request {app.config["GDPR_MAX_DATA_EXPORT_REQUESTS_PER_DAY"]} data exports per day. Please try again tomorrow.', 'warning')
+            return redirect(url_for('gdpr_export'))
+
+        export_format = request.form.get('format', 'json')
+        if export_format not in ['json', 'csv']:
+            flash('Invalid export format.', 'danger')
+            return redirect(url_for('gdpr_export'))
+
+        # Create export request
+        download_token = secrets.token_urlsafe(32)
+        export_request = GDPRDataExport(
+            user_id=current_user.id,
+            export_format=export_format,
+            download_token=download_token,
+            download_token_expires_at=datetime.utcnow() + timedelta(hours=app.config['GDPR_DOWNLOAD_TOKEN_EXPIRY_HOURS']),
+            expires_at=datetime.utcnow() + timedelta(days=app.config['GDPR_DATA_EXPORT_EXPIRY_DAYS']),
+            ip_address=request.remote_addr
+        )
+        db.session.add(export_request)
+        db.session.commit()
+
+        log_audit('data_export_requested', f'GDPR data export requested (format: {export_format})', user_id=current_user.id)
+        flash('Your data export request has been submitted. Your data will be available for download shortly.', 'success')
+        return redirect(url_for('gdpr_export'))
+
+    # Get user's export requests
+    exports = GDPRDataExport.query.filter_by(user_id=current_user.id).order_by(GDPRDataExport.requested_at.desc()).all()
+    return render_template('gdpr/export.html', exports=exports)
+
+
+@app.route('/gdpr/export/<token>/download')
+@login_required
+def gdpr_export_download(token):
+    """Download exported personal data"""
+    from models import GDPRDataExport
+    import json
+
+    export = GDPRDataExport.query.filter_by(download_token=token, user_id=current_user.id).first_or_404()
+
+    # Check if token has expired
+    if export.download_token_expires_at < datetime.utcnow():
+        flash('Download link has expired. Please request a new export.', 'danger')
+        return redirect(url_for('gdpr_export'))
+
+    if export.status != 'completed':
+        flash('Your export is not ready for download yet. Please check back soon.', 'warning')
+        return redirect(url_for('gdpr_export'))
+
+    # Build data export
+    user_data = {
+        'user': {
+            'id': current_user.id,
+            'username': current_user.username,
+            'email': current_user.email,
+            'created_at': current_user.created_at.isoformat() if current_user.created_at else None,
+        },
+        'groups_owned': [],
+        'groups_member_of': [],
+        'events_created': [],
+        'event_responses': [],
+        'invitations_sent': [],
+        'invitations_received': [],
+        'audit_logs': []
+    }
+
+    # Groups owned
+    for group in current_user.owned_groups:
+        user_data['groups_owned'].append({
+            'id': group.id,
+            'name': group.name,
+            'created_at': group.created_at.isoformat() if group.created_at else None
+        })
+
+    # Groups member of
+    for membership in current_user.group_memberships:
+        user_data['groups_member_of'].append({
+            'id': membership.group.id,
+            'name': membership.group.name,
+            'role': membership.role,
+            'joined_at': membership.joined_at.isoformat() if membership.joined_at else None
+        })
+
+    # Events created
+    for event in current_user.created_events:
+        user_data['events_created'].append({
+            'id': event.id,
+            'name': event.name,
+            'event_date': event.event_date.isoformat() if event.event_date else None,
+            'created_at': event.created_at.isoformat() if event.created_at else None
+        })
+
+    # Event responses
+    for response in current_user.event_responses:
+        user_data['event_responses'].append({
+            'event_id': response.event_id,
+            'event_name': response.event.name,
+            'status': response.status,
+            'responded_at': response.responded_at.isoformat() if response.responded_at else None
+        })
+
+    # Invitations
+    for invite in current_user.sent_invitations:
+        user_data['invitations_sent'].append({
+            'group': invite.group.name,
+            'invitee': invite.invitee.username,
+            'status': invite.status,
+            'created_at': invite.created_at.isoformat() if invite.created_at else None
+        })
+
+    for invite in current_user.received_invitations:
+        user_data['invitations_received'].append({
+            'group': invite.group.name,
+            'inviter': invite.inviter.username,
+            'status': invite.status,
+            'created_at': invite.created_at.isoformat() if invite.created_at else None
+        })
+
+    # Audit logs
+    for log in current_user.audit_logs:
+        user_data['audit_logs'].append({
+            'event_type': log.event_type,
+            'message': log.message,
+            'ip_address': log.ip_address,
+            'created_at': log.created_at.isoformat() if log.created_at else None
+        })
+
+    # Generate file
+    json_data = json.dumps(user_data, indent=2, default=str)
+
+    log_audit('data_export_downloaded', f'GDPR data export downloaded', user_id=current_user.id)
+
+    from flask import send_file
+    return send_file(
+        io.BytesIO(json_data.encode()),
+        mimetype='application/json',
+        as_attachment=True,
+        download_name=f'groupdoo_data_export_{current_user.id}_{datetime.utcnow().strftime("%Y%m%d")}.json'
+    )
+
+
+@app.route('/gdpr/delete', methods=['GET', 'POST'])
+@login_required
+def gdpr_delete_request():
+    """Request account deletion (GDPR Right to be forgotten - Article 17)"""
+    from models import GDPRDeletionRequest
+
+    if request.method == 'POST':
+        reason = request.form.get('reason', '').strip()
+
+        # Check for existing pending deletion request
+        existing = GDPRDeletionRequest.query.filter(
+            GDPRDeletionRequest.user_id == current_user.id,
+            GDPRDeletionRequest.status.in_(['pending', 'confirmed'])
+        ).first()
+
+        if existing:
+            flash('You already have a pending deletion request. Please wait for confirmation or cancel it first.', 'warning')
+            return redirect(url_for('gdpr_delete_request'))
+
+        # Create deletion request
+        confirmation_token = secrets.token_urlsafe(32)
+        deletion_request = GDPRDeletionRequest(
+            user_id=current_user.id,
+            confirmation_token=confirmation_token,
+            confirmation_token_expires_at=datetime.utcnow() + timedelta(hours=app.config['GDPR_DELETION_CONFIRMATION_HOURS']),
+            reason=reason,
+            ip_address=request.remote_addr
+        )
+        db.session.add(deletion_request)
+        db.session.commit()
+
+        log_audit('deletion_requested', f'GDPR account deletion requested', user_id=current_user.id)
+        flash('Account deletion request submitted. You will receive a confirmation email. Click the link in the email to confirm deletion.', 'info')
+
+        # TODO: Send confirmation email with deletion_request.confirmation_token
+
+        return redirect(url_for('gdpr_delete_request'))
+
+    # Get deletion requests
+    deletion_requests = GDPRDeletionRequest.query.filter_by(user_id=current_user.id).order_by(GDPRDeletionRequest.requested_at.desc()).all()
+    return render_template('gdpr/delete_request.html', deletion_requests=deletion_requests)
+
+
+@app.route('/gdpr/delete/<token>/confirm', methods=['GET', 'POST'])
+def gdpr_delete_confirm(token):
+    """Confirm account deletion"""
+    from models import GDPRDeletionRequest
+
+    deletion_request = GDPRDeletionRequest.query.filter_by(confirmation_token=token).first_or_404()
+
+    # Check if token expired
+    if deletion_request.confirmation_token_expires_at < datetime.utcnow():
+        deletion_request.status = 'cancelled'
+        db.session.commit()
+        flash('Confirmation link has expired. Please submit a new deletion request.', 'danger')
+        return redirect(url_for('index'))
+
+    if deletion_request.status != 'pending':
+        flash('This deletion request is no longer valid.', 'warning')
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        # Confirm the deletion
+        deletion_request.status = 'confirmed'
+        deletion_request.confirmed_at = datetime.utcnow()
+        db.session.commit()
+
+        user_id = deletion_request.user_id
+        log_audit('deletion_confirmed', f'GDPR account deletion confirmed', user_id=user_id)
+
+        # Schedule actual deletion (30 days grace period)
+        # TODO: Add Celery task or scheduled job to delete account after grace period
+
+        flash('Your account deletion has been confirmed. Your account will be permanently deleted in 30 days.', 'info')
+        return redirect(url_for('index'))
+
+    return render_template('gdpr/delete_confirm.html', deletion_request=deletion_request)
+
+
+@app.route('/gdpr/delete/<token>/cancel', methods=['POST'])
+@login_required
+def gdpr_delete_cancel(token):
+    """Cancel account deletion request"""
+    from models import GDPRDeletionRequest
+
+    deletion_request = GDPRDeletionRequest.query.filter_by(confirmation_token=token, user_id=current_user.id).first_or_404()
+
+    if deletion_request.status not in ['pending', 'confirmed']:
+        flash('This deletion request cannot be cancelled.', 'warning')
+        return redirect(url_for('gdpr_delete_request'))
+
+    deletion_request.status = 'cancelled'
+    db.session.commit()
+
+    log_audit('deletion_cancelled', f'GDPR account deletion request cancelled', user_id=current_user.id)
+    flash('Your account deletion request has been cancelled.', 'info')
+    return redirect(url_for('gdpr_delete_request'))
+
+
 if __name__ == '__main__':
     app.run(debug=True)

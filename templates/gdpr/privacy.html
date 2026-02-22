@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Our Privacy Policy - Groupdoo{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="mb-4">Privacy Policy & GDPR</h1>
+
+            <div class="card mb-4">
+                <div class="card-header bg-primary">
+                    <h5 class="mb-0 text-white"><i class="bi bi-shield-lock"></i> Your Privacy Rights</h5>
+                </div>
+                <div class="card-body">
+                    <p>At Groupdoo, we are committed to protecting your personal data and respecting your privacy rights under the General Data Protection Regulation (GDPR) and other applicable privacy laws.</p>
+
+                    <h5 class="mt-4">GDPR Rights</h5>
+                    <p>Under GDPR, you have the following rights:</p>
+                    <ul>
+                        <li><strong>Right to Access (Article 15):</strong> Request a copy of your personal data that we hold</li>
+                        <li><strong>Right to Rectification (Article 16):</strong> Request correction of inaccurate personal data</li>
+                        <li><strong>Right to Erasure (Article 17):</strong> Request deletion of your personal data ("Right to be forgotten")</li>
+                        <li><strong>Right to Restrict Processing (Article 18):</strong> Request limitation of how we use your data</li>
+                        <li><strong>Right to Data Portability (Article 20):</strong> Request your data in a portable format</li>
+                        <li><strong>Right to Object (Article 21):</strong> Object to specific processing activities</li>
+                        <li><strong>Right to Withdraw Consent:</strong> Withdraw consent for processing at any time</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-info">
+                    <h5 class="mb-0 text-white"><i class="bi bi-info-circle"></i> Data We Collect</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Account Information</h6>
+                    <ul>
+                        <li>Username and email address</li>
+                        <li>Password (securely hashed)</li>
+                        <li>Account creation date</li>
+                    </ul>
+
+                    <h6 class="mt-3">Activity Data</h6>
+                    <ul>
+                        <li>Groups you create and participate in</li>
+                        <li>Events you create and respond to</li>
+                        <li>Invitations sent and received</li>
+                        <li>Notifications and messages</li>
+                    </ul>
+
+                    <h6 class="mt-3">Technical Data</h6>
+                    <ul>
+                        <li>IP addresses</li>
+                        <li>User agent/browser information</li>
+                        <li>Login attempts and security events</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-success">
+                    <h5 class="mb-0 text-white"><i class="bi bi-check-circle"></i> How We Use Your Data</h5>
+                </div>
+                <div class="card-body">
+                    <ul>
+                        <li>To provide and maintain our service</li>
+                        <li>To authenticate users and prevent fraud</li>
+                        <li>To communicate with you about your account</li>
+                        <li>To comply with legal obligations</li>
+                        <li>To improve our service</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0"><i class="bi bi-clock"></i> Data Retention</h5>
+                </div>
+                <div class="card-body">
+                    <p>We retain your personal data only as long as necessary to provide our services and comply with legal obligations:</p>
+                    <ul>
+                        <li><strong>Account Data:</strong> Retained while your account is active; can be deleted on request</li>
+                        <li><strong>Audit Logs:</strong> Retained for 90 days for security purposes</li>
+                        <li><strong>Data Exports:</strong> Available for download for 30 days, then automatically deleted</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-danger">
+                    <h5 class="mb-0 text-white"><i class="bi bi-exclamation-triangle"></i> Exercising Your Rights</h5>
+                </div>
+                <div class="card-body">
+                    <p>You can exercise your GDPR rights through your account settings:</p>
+                    <ul>
+                        <li><a href="{{ url_for('gdpr_export') }}" class="alert-link">Request Data Export (Article 20)</a> - Download a copy of your personal data</li>
+                        <li><a href="{{ url_for('gdpr_delete_request') }}" class="alert-link">Request Account Deletion (Article 17)</a> - Request permanent deletion of your account</li>
+                        <li><a href="{{ url_for('gdpr_consent') }}" class="alert-link">Manage Consent Preferences</a> - Control how your data is used</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-envelope"></i> Contact Us</h5>
+                </div>
+                <div class="card-body">
+                    <p>If you have any questions about your privacy or want to exercise your GDPR rights, please contact us at <strong>privacy@groupdoo.com</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

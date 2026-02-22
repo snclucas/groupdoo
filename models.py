@@ -335,3 +335,68 @@ class AuditLog(db.Model):
 
     def __repr__(self):
         return f'<AuditLog event_type={self.event_type} user_id={self.user_id}>'
+
+
+class GDPRConsent(db.Model):
+    """GDPR Consent tracking for user privacy preferences"""
+    __tablename__ = 'gdpr_consents'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    consent_type = db.Column(db.String(50), nullable=False)  # e.g., 'marketing', 'analytics', 'third_party'
+    consented = db.Column(db.Boolean, default=False, nullable=False)
+    consented_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    ip_address = db.Column(db.String(64), nullable=True)
+    user_agent = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=utcnow)
+    updated_at = db.Column(db.DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    user = db.relationship('User', backref='gdpr_consents')
+    __table_args__ = (db.UniqueConstraint('user_id', 'consent_type', name='unique_user_consent_type'),)
+
+    def __repr__(self):
+        return f'<GDPRConsent user_id={self.user_id} type={self.consent_type} consented={self.consented}>'
+
+
+class GDPRDataExport(db.Model):
+    """GDPR Data export requests and archive records"""
+    __tablename__ = 'gdpr_data_exports'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='pending')  # pending, completed, failed, expired
+    export_format = db.Column(db.String(20), nullable=False, default='json')  # json, csv
+    download_token = db.Column(db.String(64), unique=True, nullable=True, index=True)
+    download_token_expires_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    file_size = db.Column(db.Integer, nullable=True)  # bytes
+    requested_at = db.Column(db.DateTime(timezone=True), default=utcnow)
+    completed_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    expires_at = db.Column(db.DateTime(timezone=True), nullable=True)  # Data is deleted after expiry
+    ip_address = db.Column(db.String(64), nullable=True)
+    error_message = db.Column(db.Text, nullable=True)
+
+    user = db.relationship('User', backref='gdpr_data_exports')
+
+    def __repr__(self):
+        return f'<GDPRDataExport user_id={self.user_id} status={self.status}>'
+
+
+class GDPRDeletionRequest(db.Model):
+    """GDPR Right to be forgotten (deletion) requests"""
+    __tablename__ = 'gdpr_deletion_requests'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='pending')  # pending, confirmed, completed, cancelled
+    confirmation_token = db.Column(db.String(64), unique=True, nullable=True, index=True)
+    confirmation_token_expires_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    confirmed_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    completed_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    requested_at = db.Column(db.DateTime(timezone=True), default=utcnow)
+    reason = db.Column(db.Text, nullable=True)
+    ip_address = db.Column(db.String(64), nullable=True)
+
+    user = db.relationship('User', backref='gdpr_deletion_requests')
+
+    def __repr__(self):
+        return f'<GDPRDeletionRequest user_id={self.user_id} status={self.status}>'

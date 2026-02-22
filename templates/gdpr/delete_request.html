@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Request Account Deletion - Groupdoo{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="mb-4"><i class="bi bi-exclamation-triangle"></i> Request Account Deletion</h1>
+
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <strong>GDPR Article 17 (Right to be Forgotten):</strong> You can request permanent deletion of your account. This action cannot be undone.
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header bg-danger">
+                            <h6 class="mb-0 text-white"><i class="bi bi-trash"></i> Delete Account</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Once you submit a deletion request, you will receive a confirmation email. You must confirm within 24 hours to proceed with deletion.</p>
+
+                            <form method="POST" class="mb-3">
+                                <div class="mb-3">
+                                    <label for="reason" class="form-label">Reason for Deletion (Optional)</label>
+                                    <textarea class="form-control" name="reason" id="reason" rows="4" placeholder="Let us know why you're leaving..."></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure? This will initiate the account deletion process.')">
+                                    <i class="bi bi-trash"></i> Request Deletion
+                                </button>
+                            </form>
+
+                            <div class="alert alert-info small">
+                                <strong>What happens next:</strong>
+                                <ol class="mb-0">
+                                    <li>You submit this deletion request</li>
+                                    <li>You receive a confirmation email</li>
+                                    <li>You must click the confirmation link within 24 hours</li>
+                                    <li>Your account will be permanently deleted after a 30-day grace period</li>
+                                </ol>
+                            </div>
+
+                            <div class="alert alert-warning small">
+                                <strong>Before deletion, consider:</strong>
+                                <ul class="mb-0">
+                                    <li>Download your data using our <a href="{{ url_for('gdpr_export') }}" class="alert-link">Data Export tool</a></li>
+                                    <li>You will lose access to all groups and events</li>
+                                    <li>Groups you own will be transferred to other members</li>
+                                    <li>Your account cannot be recovered after deletion</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if deletion_requests %}
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-list-check"></i> Your Deletion Requests</h6>
+                </div>
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Requested</th>
+                                <th>Status</th>
+                                <th>Expires</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for req in deletion_requests %}
+                            <tr>
+                                <td>{{ req.requested_at.strftime('%b %d, %Y %H:%M') }}</td>
+                                <td>
+                                    {% if req.status == 'pending' %}
+                                    <span class="badge bg-warning">Pending Confirmation</span>
+                                    {% elif req.status == 'confirmed' %}
+                                    <span class="badge bg-danger">Confirmed - Scheduled for Deletion</span>
+                                    {% elif req.status == 'completed' %}
+                                    <span class="badge bg-dark">Completed</span>
+                                    {% elif req.status == 'cancelled' %}
+                                    <span class="badge bg-secondary">Cancelled</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if req.confirmation_token_expires_at %}
+                                    {{ req.confirmation_token_expires_at.strftime('%b %d, %Y %H:%M') }}
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if req.status in ['pending', 'confirmed'] %}
+                                    <form method="POST" action="{{ url_for('gdpr_delete_cancel', token=req.confirmation_token) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-secondary" onclick="return confirm('Cancel deletion request?')">
+                                            <i class="bi bi-x"></i> Cancel
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

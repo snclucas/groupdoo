@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Consent Preferences - Groupdoo{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="mb-4"><i class="bi bi-hand-thumbs-up"></i> Manage Consent Preferences</h1>
+
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> You can update your consent preferences at any time. Your choices will be saved immediately.
+            </div>
+
+            <form method="POST" class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">Privacy & Consent Settings</h5>
+
+                    {% for consent_type in consent_types %}
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="consent_{{ consent_type }}" name="consent_{{ consent_type }}"
+                            {% if consents.get(consent_type) %}checked{% endif %}>
+                        <label class="form-check-label" for="consent_{{ consent_type }}">
+                            <strong>{{ consent_type.replace('_', ' ').title() }}</strong>
+                        </label>
+                    </div>
+
+                    {% if consent_type == 'marketing_emails' %}
+                    <p class="text-muted ms-4 mb-3">Allow us to send you marketing emails about new features and updates</p>
+                    {% elif consent_type == 'analytics' %}
+                    <p class="text-muted ms-4 mb-3">Allow us to collect analytics data to improve our service</p>
+                    {% elif consent_type == 'third_party_sharing' %}
+                    <p class="text-muted ms-4 mb-3">Allow us to share anonymized data with third-party partners</p>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+
+                <div class="card-footer">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Save Preferences
+                    </button>
+                    <a href="{{ url_for('gdpr_privacy') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-info-circle"></i> Privacy Policy
+                    </a>
+                </div>
+            </form>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">Your Data Rights</h6>
+                </div>
+                <div class="card-body">
+                    <p>Under GDPR, you also have the right to:</p>
+                    <ul>
+                        <li><a href="{{ url_for('gdpr_export') }}" class="alert-link">Request a copy of your personal data</a></li>
+                        <li><a href="{{ url_for('gdpr_delete_request') }}" class="alert-link">Request account deletion</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
