@@ -3,29 +3,140 @@
 {% block title %}{{ _('Home') }} - Groupdoo{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center mt-5">
-    <div class="col-md-8 text-center">
-        <h1 class="display-4 mb-4">{{ _('Welcome to Groupdoo') }}</h1>
-        <p class="lead">{{ _('A secure platform for managing your groups and activities.') }}</p>
-
-        <form class="d-flex justify-content-center mt-4" method="GET" action="{{ url_for('search') }}">
-            <div class="input-group input-group-lg w-100 w-md-75">
-                <span class="input-group-text"><i class="bi bi-search"></i></span>
-                <input class="form-control" type="search" name="q" placeholder="{{ _('Search public groups and events') }}" aria-label="{{ _('Search') }}">
-                <button class="btn btn-primary" type="submit">{{ _('Search') }}</button>
-            </div>
-        </form>
-
-        {% if current_user.is_authenticated %}
-            <div class="mt-4">
-                <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">{{ _('Go to Dashboard') }}</a>
-            </div>
-        {% else %}
-            <div class="mt-4">
-                <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg me-2">{{ _('Login') }}</a>
-                <a href="{{ url_for('register') }}" class="btn btn-outline-primary btn-lg">{{ _('Register') }}</a>
-            </div>
-        {% endif %}
+{% if current_user.is_authenticated %}
+    <!-- Auto-redirect logged-in users to dashboard -->
+    <script>
+        window.location.href = "{{ url_for('dashboard') }}";
+    </script>
+    <div class="alert alert-info">
+        {{ _('Redirecting you to your dashboard...') }}
     </div>
-</div>
+{% else %}
+    <!-- Hero Section -->
+    <div class="row justify-content-center mt-5 mb-5">
+        <div class="col-md-10 text-center">
+            <h1 class="display-4 mb-3 fw-bold">{{ _('Welcome to Groupdoo') }}</h1>
+            <p class="lead text-muted mb-4">{{ _('Connect, organize, and manage your groups all in one place') }}</p>
+
+            <!-- Search Bar -->
+            <form class="d-flex justify-content-center mb-5" method="GET" action="{{ url_for('search') }}">
+                <div class="input-group input-group-lg" style="max-width: 500px;">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input class="form-control" type="search" name="q" placeholder="{{ _('Search public groups and events') }}" aria-label="{{ _('Search') }}">
+                    <button class="btn btn-primary" type="submit">{{ _('Search') }}</button>
+                </div>
+            </form>
+
+            <!-- CTA Buttons -->
+            <div class="mb-5">
+                <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg me-3 px-5">
+                    <i class="bi bi-box-arrow-in-right"></i> {{ _('Login') }}
+                </a>
+                <a href="{{ url_for('register') }}" class="btn btn-outline-primary btn-lg px-5">
+                    <i class="bi bi-person-plus"></i> {{ _('Create Account') }}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-10">
+            <h2 class="text-center mb-5">{{ _('What is Groupdoo?') }}</h2>
+
+            <div class="row g-4 mb-5">
+                <!-- Feature 1: Group Management -->
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm text-center">
+                        <div class="card-body">
+                            <i class="bi bi-people-fill text-primary mb-3" style="font-size: 2.5rem;"></i>
+                            <h5 class="card-title">{{ _('Create & Manage Groups') }}</h5>
+                            <p class="card-text text-muted">
+                                {{ _('Organize your communities, whether for meetups, playdates, or online events. Control who can join and how members interact.') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feature 2: Event Planning -->
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm text-center">
+                        <div class="card-body">
+                            <i class="bi bi-calendar-event text-success mb-3" style="font-size: 2.5rem;"></i>
+                            <h5 class="card-title">{{ _('Plan & Organize Events') }}</h5>
+                            <p class="card-text text-muted">
+                                {{ _('Create events with location details, dates, times, and costs. Members can RSVP and receive updates about changes.') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feature 3: Smart Invitations -->
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm text-center">
+                        <div class="card-body">
+                            <i class="bi bi-envelope-open text-info mb-3" style="font-size: 2.5rem;"></i>
+                            <h5 class="card-title">{{ _('Easy Invitations') }}</h5>
+                            <p class="card-text text-muted">
+                                {{ _('Invite users directly or share unique invite links. Flexible permissions for public and private groups.') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mb-5">
+                <!-- Feature 4: Calendar Integration -->
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm text-center">
+                        <div class="card-body">
+                            <i class="bi bi-download text-warning mb-3" style="font-size: 2.5rem;"></i>
+                            <h5 class="card-title">{{ _('Add to Your Calendar') }}</h5>
+                            <p class="card-text text-muted">
+                                {{ _('Export events to your calendar app (iCal format). Never miss an event with automatic reminders.') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feature 5: GDPR Compliant -->
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm text-center">
+                        <div class="card-body">
+                            <i class="bi bi-shield-lock text-danger mb-3" style="font-size: 2.5rem;"></i>
+                            <h5 class="card-title">{{ _('Privacy First') }}</h5>
+                            <p class="card-text text-muted">
+                                {{ _('Your data is yours. GDPR compliant with tools to export, manage, or delete your information anytime.') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feature 6: Multilingual -->
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm text-center">
+                        <div class="card-body">
+                            <i class="bi bi-globe text-secondary mb-3" style="font-size: 2.5rem;"></i>
+                            <h5 class="card-title">{{ _('Speak Your Language') }}</h5>
+                            <p class="card-text text-muted">
+                                {{ _('Available in English, French, Spanish, German, Dutch, and Italian. Switch anytime.') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA Section -->
+            <div class="card bg-light border-0 p-5 text-center">
+                <h3 class="mb-3">{{ _('Ready to get started?') }}</h3>
+                <p class="text-muted mb-4">
+                    {{ _('Join thousands of users managing their communities on Groupdoo.') }}
+                </p>
+                <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">
+                    <i class="bi bi-person-plus"></i> {{ _('Create Your Free Account') }}
+                </a>
+            </div>
+        </div>
+    </div>
+{% endif %}
 {% endblock %}
