@@ -1048,6 +1048,24 @@ def group_invite(group_id):
         db.session.add(invitation)
         db.session.commit()
 
+        # Send email notification if user has email notifications enabled
+        if invitee.email_verified and invitee.email_notifications:
+            try:
+                invitation_url = url_for('invitations_list', _external=True)
+                send_templated_email(
+                    invitee.email,
+                    f'Group Invitation: {group.name}',
+                    'group_invitation',
+                    {
+                        'invitee': invitee,
+                        'inviter': current_user,
+                        'group': group,
+                        'invitation_url': invitation_url
+                    }
+                )
+            except EmailSendError:
+                pass  # Don't block invitation if email fails
+
         flash(f'Invitation sent to {invitee.username}!', 'success')
         return redirect(url_for('group_view', group_id=group.id))
 
@@ -1758,12 +1776,15 @@ def account_profile():
     if request.method == 'GET':
         profile_form.email.data = current_user.email
         profile_form.language.data = current_user.language or app.config['BABEL_DEFAULT_LOCALE']
+        profile_form.email_notifications.data = current_user.email_notifications
 
     if profile_form.submit.data and profile_form.validate():
         new_email = profile_form.email.data.strip().lower()
         new_language = profile_form.language.data
+        new_email_notifications = profile_form.email_notifications.data
         email_changed = new_email != current_user.email
         language_changed = new_language != current_user.language
+        notifications_changed = new_email_notifications != current_user.email_notifications
 
         if email_changed:
             existing = User.query.filter(User.email == new_email, User.id != current_user.id).first()
@@ -1779,7 +1800,10 @@ def account_profile():
             current_user.language = new_language
             session['language'] = new_language
 
-        if email_changed or language_changed:
+        if notifications_changed:
+            current_user.email_notifications = new_email_notifications
+
+        if email_changed or language_changed or notifications_changed:
             db.session.commit()
             if email_changed:
                 try:

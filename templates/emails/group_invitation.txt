@@ -1,0 +1,19 @@
+Group Invitation
+
+Hi {{ invitee.username }},
+
+{{ inviter.username }} has invited you to join the group "{{ group.name }}" on Groupdoo!
+
+{% if group.description %}
+About the group:
+{{ group.description }}
+{% endif %}
+
+To accept or decline this invitation, please visit:
+{{ invitation_url }}
+
+You can manage your email notification preferences in your account settings.
+
+Thanks,
+The Groupdoo Team
+

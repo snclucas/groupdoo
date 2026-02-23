@@ -43,6 +43,15 @@
                         {% endif %}
                     </div>
 
+                    <div class="mb-3">
+                        <h5>Email Preferences</h5>
+                        <div class="form-check">
+                            {{ profile_form.email_notifications(class="form-check-input") }}
+                            {{ profile_form.email_notifications.label(class="form-check-label") }}
+                            <div class="form-text">When enabled, you'll receive email notifications when you're invited to join a group.</div>
+                        </div>
+                    </div>
+
                     {% if not current_user.email_verified %}
                     <div class="mb-3">
                         <a class="btn btn-outline-warning btn-sm" href="{{ url_for('resend_verification', email=current_user.email) }}">

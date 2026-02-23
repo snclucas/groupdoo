@@ -93,6 +93,7 @@ class ProfileUpdateForm(FlaskForm):
         Email(message='Invalid email address')
     ])
     language = SelectField('Language', validators=[DataRequired()])
+    email_notifications = BooleanField('Receive email notifications for group invitations')
     submit = SubmitField('Save Changes')
 
 

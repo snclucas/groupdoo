@@ -22,6 +22,7 @@ class User(UserMixin, db.Model):
     language = db.Column(db.String(10), nullable=True, default='en')
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     email_verified = db.Column(db.Boolean, default=False, nullable=False)
+    email_notifications = db.Column(db.Boolean, default=True, nullable=False)
     email_verify_token = db.Column(db.String(64), nullable=True, index=True)
     email_verify_expires_at = db.Column(db.DateTime(timezone=True), nullable=True)
     password_reset_token = db.Column(db.String(64), nullable=True, index=True)
