@@ -25,7 +25,7 @@
                     <div class="card-body">
                         <h5 class="card-title">
                             {{ event.name }}
-                            {% if event.event_date > current_time %}
+                            {% if event.event_date_utc > current_time %}
                             <span class="badge bg-info">Upcoming</span>
                             {% else %}
                             <span class="badge bg-secondary">Past</span>
@@ -106,4 +106,3 @@
     </div>
 </div>
 {% endblock %}
-

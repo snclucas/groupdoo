@@ -71,6 +71,15 @@ def now_utc():
     return datetime.now(timezone.utc)
 
 
+def to_utc(dt_value):
+    """Ensure a datetime is timezone-aware in UTC"""
+    if dt_value is None:
+        return None
+    if dt_value.tzinfo is None:
+        return dt_value.replace(tzinfo=timezone.utc)
+    return dt_value.astimezone(timezone.utc)
+
+
 @app.after_request
 def add_security_headers(response):
     """Add basic security headers"""
@@ -187,9 +196,9 @@ def _format_ics_datetime(value):
 
 def build_event_ics(event, event_url):
     """Build an iCalendar payload for an event"""
-    dt_start = _format_ics_datetime(event.event_date)
-    dt_end = _format_ics_datetime(event.event_date + timedelta(hours=1))
-    dt_stamp = _format_ics_datetime(datetime.utcnow())
+    dt_start = _format_ics_datetime(to_utc(event.event_date))
+    dt_end = _format_ics_datetime(to_utc(event.event_date) + timedelta(hours=1))
+    dt_stamp = _format_ics_datetime(now_utc())
     description_parts = []
     if event.description:
         description_parts.append(event.description)
@@ -380,7 +389,7 @@ def dashboard():
                          pending_invitations=pending_invitations,
                          upcoming_events=upcoming_events,
                          notifications=notifications,
-                         current_time=datetime.utcnow())
+                         current_time=now_utc())
 
 
 @app.route('/search')
@@ -553,6 +562,8 @@ def group_view(group_id):
 
     # Get all events for this group, ordered by date
     events = group.events.order_by(Event.event_date.asc()).all()
+    for event in events:
+        event.event_date_utc = to_utc(event.event_date)
 
     return render_template('groups/view.html',
                          group=group,
@@ -563,7 +574,7 @@ def group_view(group_id):
                          invite_tokens=invite_tokens,
                          invite_method_label=invite_method_label,
                          events=events,
-                         current_time=datetime.utcnow())
+                         current_time=now_utc())
 
 
 @app.route('/groups/<int:group_id>/members/<int:member_id>/make-admin', methods=['POST'])
@@ -985,8 +996,9 @@ def events_list(group_id):
         return redirect(url_for('groups_list'))
 
     events = group.events.order_by(Event.event_date.desc()).all()
-    # Convert timezone-aware UTC to naive for template comparison with database datetimes
-    current_time_naive = datetime.utcnow()
+    for event in events:
+        event.event_date_utc = to_utc(event.event_date)
+    current_time_naive = now_utc()
     return render_template('events/list.html', group=group, events=events, current_time=current_time_naive)
 
 
@@ -1065,6 +1077,8 @@ def event_view(group_id, event_id):
     interested_users = event.get_interested_users()
     not_going_users = event.get_not_going_users()
 
+    event.event_date_utc = to_utc(event.event_date)
+
     return render_template('events/view.html',
                          group=group,
                          event=event,
@@ -1072,7 +1086,7 @@ def event_view(group_id, event_id):
                          going_users=going_users,
                          interested_users=interested_users,
                          not_going_users=not_going_users,
-                         current_time=datetime.utcnow())
+                         current_time=now_utc())
 
 
 @app.route('/groups/<int:group_id>/events/<int:event_id>/calendar')
@@ -1453,7 +1467,7 @@ def gdpr_banner_accept():
             user_id=current_user.id,
             consent_type='banner',
             consented=True,
-            consented_at=datetime.utcnow(),
+            consented_at=now_utc(),
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent', '')[:255]
         )
@@ -1461,7 +1475,7 @@ def gdpr_banner_accept():
     else:
         # Update existing consent
         banner_consent.consented = True
-        banner_consent.consented_at = datetime.utcnow()
+        banner_consent.consented_at = now_utc()
         banner_consent.ip_address = request.remote_addr
 
     db.session.commit()
@@ -1490,13 +1504,13 @@ def gdpr_consent():
             if consent:
                 consent.consented = value
                 if value:
-                    consent.consented_at = datetime.utcnow()
+                    consent.consented_at = now_utc()
             else:
                 consent = GDPRConsent(
                     user_id=current_user.id,
                     consent_type=consent_type,
                     consented=value,
-                    consented_at=datetime.utcnow() if value else None,
+                    consented_at=now_utc() if value else None,
                     ip_address=request.remote_addr,
                     user_agent=request.headers.get('User-Agent', '')[:255]
                 )
@@ -1526,7 +1540,7 @@ def gdpr_export():
     if request.method == 'POST':
         # Rate limiting
         recent_exports = GDPRDataExport.query.filter_by(user_id=current_user.id).filter(
-            GDPRDataExport.requested_at > datetime.utcnow() - timedelta(days=1)
+            GDPRDataExport.requested_at > now_utc() - timedelta(days=1)
         ).count()
 
         if recent_exports >= app.config['GDPR_MAX_DATA_EXPORT_REQUESTS_PER_DAY']:
@@ -1544,8 +1558,8 @@ def gdpr_export():
             user_id=current_user.id,
             export_format=export_format,
             download_token=download_token,
-            download_token_expires_at=datetime.utcnow() + timedelta(hours=app.config['GDPR_DOWNLOAD_TOKEN_EXPIRY_HOURS']),
-            expires_at=datetime.utcnow() + timedelta(days=app.config['GDPR_DATA_EXPORT_EXPIRY_DAYS']),
+            download_token_expires_at=now_utc() + timedelta(hours=app.config['GDPR_DOWNLOAD_TOKEN_EXPIRY_HOURS']),
+            expires_at=now_utc() + timedelta(days=app.config['GDPR_DATA_EXPORT_EXPIRY_DAYS']),
             ip_address=request.remote_addr
         )
         db.session.add(export_request)
@@ -1570,7 +1584,7 @@ def gdpr_export_download(token):
     export = GDPRDataExport.query.filter_by(download_token=token, user_id=current_user.id).first_or_404()
 
     # Check if token has expired
-    if export.download_token_expires_at < datetime.utcnow():
+    if export.download_token_expires_at < now_utc():
         flash('Download link has expired. Please request a new export.', 'danger')
         return redirect(url_for('gdpr_export'))
 
@@ -1666,7 +1680,7 @@ def gdpr_export_download(token):
         io.BytesIO(json_data.encode()),
         mimetype='application/json',
         as_attachment=True,
-        download_name=f'groupdoo_data_export_{current_user.id}_{datetime.utcnow().strftime("%Y%m%d")}.json'
+        download_name=f'groupdoo_data_export_{current_user.id}_{now_utc().strftime("%Y%m%d")}.json'
     )
 
 
@@ -1694,7 +1708,7 @@ def gdpr_delete_request():
         deletion_request = GDPRDeletionRequest(
             user_id=current_user.id,
             confirmation_token=confirmation_token,
-            confirmation_token_expires_at=datetime.utcnow() + timedelta(hours=app.config['GDPR_DELETION_CONFIRMATION_HOURS']),
+            confirmation_token_expires_at=now_utc() + timedelta(hours=app.config['GDPR_DELETION_CONFIRMATION_HOURS']),
             reason=reason,
             ip_address=request.remote_addr
         )
@@ -1721,7 +1735,7 @@ def gdpr_delete_confirm(token):
     deletion_request = GDPRDeletionRequest.query.filter_by(confirmation_token=token).first_or_404()
 
     # Check if token expired
-    if deletion_request.confirmation_token_expires_at < datetime.utcnow():
+    if deletion_request.confirmation_token_expires_at < now_utc():
         deletion_request.status = 'cancelled'
         db.session.commit()
         flash('Confirmation link has expired. Please submit a new deletion request.', 'danger')
@@ -1734,7 +1748,7 @@ def gdpr_delete_confirm(token):
     if request.method == 'POST':
         # Confirm the deletion
         deletion_request.status = 'confirmed'
-        deletion_request.confirmed_at = datetime.utcnow()
+        deletion_request.confirmed_at = now_utc()
         db.session.commit()
 
         user_id = deletion_request.user_id

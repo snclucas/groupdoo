@@ -235,29 +235,30 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Event Name</th>
-                                <th>Date & Time</th>
+                                <th>Date</th>
+                                <th>Time</th>
                                 <th>Location</th>
+                                <th>Status</th>
                                 <th style="width: 150px;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for event in events %}
-                            <tr class="{% if event.event_date < current_time %}table-secondary text-muted{% endif %}">
+                            <tr class="{% if event.event_date_utc < current_time %}table-secondary text-muted{% endif %}">
                                 <td>
-                                    <strong>{{ event.name }}</strong>
-                                    {% if event.category %}
-                                    <br><small class="badge bg-light text-dark">{{ event.category }}</small>
-                                    {% endif %}
+                                    <a href="{{ url_for('event_view', group_id=group.id, event_id=event.id) }}" class="text-decoration-none">
+                                        {{ event.name }}
+                                    </a>
                                 </td>
+                                <td>{{ event.event_date.strftime('%B %d, %Y') }}</td>
+                                <td>{{ event.event_date.strftime('%I:%M %p') }}</td>
+                                <td>{{ event.location_name }}</td>
                                 <td>
-                                    {% if event.event_date >= current_time %}
-                                    <span class="badge bg-success">{{ event.event_date.strftime('%b %d, %Y %I:%M %p') }}</span>
+                                    {% if event.event_date_utc >= current_time %}
+                                    <span class="badge bg-info">Upcoming</span>
                                     {% else %}
-                                    <span class="badge bg-secondary">{{ event.event_date.strftime('%b %d, %Y %I:%M %p') }}</span>
+                                    <span class="badge bg-secondary">Past</span>
                                     {% endif %}
-                                </td>
-                                <td>
-                                    <i class="bi bi-geo-alt"></i> {{ event.location_name }}
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
