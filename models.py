@@ -76,14 +76,20 @@ class Group(db.Model):
 
     def is_owner(self, user):
         """Check if user is the owner of this group"""
+        if not user or not getattr(user, 'is_authenticated', False):
+            return False
         return self.owner_id == user.id
 
     def is_member(self, user):
         """Check if user is a member of this group"""
+        if not user or not getattr(user, 'is_authenticated', False):
+            return False
         return self.members.filter_by(user_id=user.id).first() is not None
 
     def is_admin(self, user):
         """Check if user is an admin of this group"""
+        if not user or not getattr(user, 'is_authenticated', False):
+            return False
         if self.is_owner(user):
             return True
         membership = self.members.filter_by(user_id=user.id).first()
@@ -128,6 +134,7 @@ class Event(db.Model):
     parking_difficulty = db.Column(db.String(20), nullable=True)  # Parking: 'Good', 'Mostly good', 'Limited', 'Very limited', or None
     category = db.Column(db.String(50), nullable=True)  # Event category: 'Playdate', 'Meal', 'Museum visit', 'Other', or None for uncategorised
     space = db.Column(db.String(20), nullable=True)  # Event space: 'Indoor', 'Outdoor', 'Both', or None for not specified
+    booking_requirement = db.Column(db.String(30), nullable=True)  # 'Requires booking', 'No booking required', or None
     created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=utcnow)
     updated_at = db.Column(db.DateTime(timezone=True), default=utcnow, onupdate=utcnow)

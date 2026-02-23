@@ -136,6 +136,11 @@ class EventForm(FlaskForm):
     ])
     category = SelectField('Category', validators=[Optional()])  # Choices will be set dynamically from config
     space = SelectField('Space', validators=[Optional()])  # Choices will be set dynamically from config
+    booking_requirement = SelectField('Booking Requirement', validators=[Optional()], choices=[
+        ('', 'Don\'t show booking info'),
+        ('Requires booking', 'Requires booking'),
+        ('No booking required', 'No booking required')
+    ])
     tags = StringField('Tags', validators=[
         Length(max=500, message='Tags must be less than 500 characters')
     ])

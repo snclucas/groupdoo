@@ -8,6 +8,14 @@
         <h1 class="display-4 mb-4">Welcome to Groupdoo</h1>
         <p class="lead">A secure platform for managing your groups and activities.</p>
 
+        <form class="d-flex justify-content-center mt-4" method="GET" action="{{ url_for('search') }}">
+            <div class="input-group input-group-lg w-100 w-md-75">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input class="form-control" type="search" name="q" placeholder="Search public groups and events" aria-label="Search">
+                <button class="btn btn-primary" type="submit">Search</button>
+            </div>
+        </form>
+
         {% if current_user.is_authenticated %}
             <div class="mt-4">
                 <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">Go to Dashboard</a>
@@ -21,4 +29,3 @@
     </div>
 </div>
 {% endblock %}
-

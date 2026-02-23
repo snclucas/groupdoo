@@ -290,7 +290,6 @@ def dashboard():
 
 
 @app.route('/search')
-@login_required
 def search():
     """Search groups and events by free text and tags"""
     query = (request.args.get('q') or '').strip()
@@ -301,40 +300,46 @@ def search():
 
     if query:
         like = f"%{query}%"
-        owned_groups = current_user.owned_groups.all()
-        memberships = current_user.group_memberships.all()
-        member_group_ids = {g.id for g in owned_groups} | {m.group_id for m in memberships}
 
-        if member_group_ids:
-            member_groups = Group.query \
-                .outerjoin(GroupTag, GroupTag.group_id == Group.id) \
-                .outerjoin(Tag, Tag.id == GroupTag.tag_id) \
-                .filter(Group.id.in_(member_group_ids)) \
-                .filter(or_(
-                    Group.name.ilike(like),
-                    Group.description.ilike(like),
-                    Tag.name.ilike(like)
-                )) \
-                .distinct().all()
+        if current_user.is_authenticated:
+            owned_groups = current_user.owned_groups.all()
+            memberships = current_user.group_memberships.all()
+            member_group_ids = {g.id for g in owned_groups} | {m.group_id for m in memberships}
 
-            member_events = Event.query \
-                .outerjoin(EventTag, EventTag.event_id == Event.id) \
-                .outerjoin(Tag, Tag.id == EventTag.tag_id) \
-                .filter(Event.group_id.in_(member_group_ids)) \
-                .filter(or_(
-                    Event.name.ilike(like),
-                    Event.description.ilike(like),
-                    Tag.name.ilike(like)
-                )) \
-                .distinct().all()
+            if member_group_ids:
+                member_groups = Group.query \
+                    .outerjoin(GroupTag, GroupTag.group_id == Group.id) \
+                    .outerjoin(Tag, Tag.id == GroupTag.tag_id) \
+                    .filter(Group.id.in_(member_group_ids)) \
+                    .filter(or_(
+                        Group.name.ilike(like),
+                        Group.description.ilike(like),
+                        Tag.name.ilike(like)
+                    )) \
+                    .distinct().all()
+
+                member_events = Event.query \
+                    .outerjoin(EventTag, EventTag.event_id == Event.id) \
+                    .outerjoin(Tag, Tag.id == EventTag.tag_id) \
+                    .filter(Event.group_id.in_(member_group_ids)) \
+                    .filter(or_(
+                        Event.name.ilike(like),
+                        Event.description.ilike(like),
+                        Tag.name.ilike(like)
+                    )) \
+                    .distinct().all()
 
         public_group_query = Group.query \
             .outerjoin(GroupTag, GroupTag.group_id == Group.id) \
             .outerjoin(Tag, Tag.id == GroupTag.tag_id) \
             .filter(Group.is_public.is_(True))
 
-        if member_group_ids:
-            public_group_query = public_group_query.filter(~Group.id.in_(member_group_ids))
+        if current_user.is_authenticated:
+            owned_groups = current_user.owned_groups.all()
+            memberships = current_user.group_memberships.all()
+            member_group_ids = {g.id for g in owned_groups} | {m.group_id for m in memberships}
+            if member_group_ids:
+                public_group_query = public_group_query.filter(~Group.id.in_(member_group_ids))
 
         public_groups = public_group_query \
             .filter(or_(
@@ -350,7 +355,7 @@ def search():
             .join(Group, Event.group_id == Group.id) \
             .filter(Group.is_public.is_(True))
 
-        if member_group_ids:
+        if current_user.is_authenticated and 'member_group_ids' in locals() and member_group_ids:
             public_event_query = public_event_query.filter(~Event.group_id.in_(member_group_ids))
 
         public_events = public_event_query \
@@ -433,7 +438,6 @@ def group_create():
 
 
 @app.route('/groups/<int:group_id>')
-@login_required
 def group_view(group_id):
     """View a group"""
     group = Group.query.get_or_404(group_id)
@@ -925,6 +929,7 @@ def event_create(group_id):
             parking_difficulty=form.parking_difficulty.data if form.parking_difficulty.data else None,
             category=form.category.data if form.category.data else None,
             space=form.space.data if form.space.data else None,
+            booking_requirement=form.booking_requirement.data if form.booking_requirement.data else None,
             created_by_id=current_user.id
         )
         db.session.add(event)
@@ -942,7 +947,6 @@ def event_create(group_id):
 
 
 @app.route('/groups/<int:group_id>/events/<int:event_id>')
-@login_required
 def event_view(group_id, event_id):
     """View event details"""
     group = Group.query.get_or_404(group_id)
@@ -953,12 +957,16 @@ def event_view(group_id, event_id):
         flash('Event not found in this group.', 'danger')
         return redirect(url_for('events_list', group_id=group.id))
 
-    # Check if user can view this group
-    if not group.can_view(current_user):
-        flash('You do not have permission to view this group.', 'danger')
-        return redirect(url_for('groups_list'))
+    # Public events are viewable by anyone; private events require membership
+    if not group.is_public:
+        if not current_user.is_authenticated:
+            flash('Please log in to view this private group event.', 'warning')
+            return redirect(url_for('login', next=request.path))
+        if not group.can_view(current_user):
+            flash('You do not have permission to view this group.', 'danger')
+            return redirect(url_for('groups_list'))
 
-    user_response = event.get_user_response(current_user)
+    user_response = event.get_user_response(current_user) if current_user.is_authenticated else None
     going_users = event.get_going_users()
     interested_users = event.get_interested_users()
     not_going_users = event.get_not_going_users()
@@ -1028,6 +1036,7 @@ def event_edit(group_id, event_id):
         event.parking_difficulty = form.parking_difficulty.data if form.parking_difficulty.data else None
         event.category = form.category.data if form.category.data else None
         event.space = form.space.data if form.space.data else None
+        event.booking_requirement = form.booking_requirement.data if form.booking_requirement.data else None
         db.session.commit()
 
         # Update tags
@@ -1064,6 +1073,7 @@ def event_edit(group_id, event_id):
     form.parking_difficulty.data = event.parking_difficulty or ''
     form.category.data = event.category or ''
     form.space.data = event.space or ''
+    form.booking_requirement.data = event.booking_requirement or ''
     form.tags.data = ', '.join(event.get_tag_names())
     form.submit.label.text = 'Update Event'
 
@@ -1636,6 +1646,44 @@ def gdpr_delete_cancel(token):
     log_audit('deletion_cancelled', f'GDPR account deletion request cancelled', user_id=current_user.id)
     flash('Your account deletion request has been cancelled.', 'info')
     return redirect(url_for('gdpr_delete_request'))
+
+
+@app.route('/groups/<int:group_id>/events/<int:event_id>/duplicate', methods=['GET'])
+@login_required
+def event_duplicate(group_id, event_id):
+    """Duplicate an event by pre-filling the create form"""
+    group = Group.query.get_or_404(group_id)
+    event = Event.query.get_or_404(event_id)
+
+    if event.group_id != group.id:
+        flash('Event not found in this group.', 'danger')
+        return redirect(url_for('events_list', group_id=group.id))
+
+    # Only members and owner can create events
+    if not (group.is_owner(current_user) or group.is_member(current_user)):
+        flash('You must be a member of this group to create events.', 'danger')
+        return redirect(url_for('group_view', group_id=group.id))
+
+    if group.is_public and not group.is_owner(current_user):
+        flash('Only the group owner can create events for public groups.', 'warning')
+        return redirect(url_for('group_view', group_id=group.id))
+
+    form = create_event_form()
+    form.name.data = event.name
+    form.description.data = event.description
+    form.event_date.data = event.event_date.date()
+    form.event_time.data = event.event_date.time()
+    form.location_name.data = event.location_name
+    form.address.data = event.address
+    form.url.data = event.url
+    form.cost.data = event.cost
+    form.parking_difficulty.data = event.parking_difficulty or ''
+    form.category.data = event.category or ''
+    form.space.data = event.space or ''
+    form.booking_requirement.data = event.booking_requirement or ''
+    form.tags.data = ', '.join(event.get_tag_names())
+
+    return render_template('events/create.html', form=form, group=group)
 
 
 if __name__ == '__main__':

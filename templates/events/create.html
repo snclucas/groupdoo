@@ -159,6 +159,19 @@
                     </div>
 
                     <div class="mb-3">
+                        {{ form.booking_requirement.label(class="form-label") }}
+                        {{ form.booking_requirement(class="form-select" + (" is-invalid" if form.booking_requirement.errors else "")) }}
+                        {% if form.booking_requirement.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.booking_requirement.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">Optional. Let attendees know if booking is required</small>
+                    </div>
+
+                    <div class="mb-3">
                         {{ form.tags.label(class="form-label") }}
                         {{ form.tags(class="form-control" + (" is-invalid" if form.tags.errors else ""), placeholder="e.g., family, outdoor, fun") }}
                         {% if form.tags.errors %}
@@ -181,4 +194,3 @@
     </div>
 </div>
 {% endblock %}
-

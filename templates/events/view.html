@@ -18,6 +18,9 @@
                 {% if event.created_by_id == current_user.id or group.is_owner(current_user) %}
                 <div class="btn-group">
                     {% if not group.is_public or group.is_owner(current_user) %}
+                    <a href="{{ url_for('event_duplicate', group_id=group.id, event_id=event.id) }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-files"></i> Duplicate
+                    </a>
                     <a href="{{ url_for('event_edit', group_id=group.id, event_id=event.id) }}" class="btn btn-sm btn-outline-primary">
                         <i class="bi bi-pencil"></i> Edit
                     </a>
@@ -114,6 +117,14 @@
                 </p>
                 {% endif %}
 
+                {% if event.booking_requirement %}
+                <h6 class="text-muted">Booking</h6>
+                <p class="mb-3">
+                    <i class="bi bi-calendar-check"></i>
+                    <strong>{{ event.booking_requirement }}</strong>
+                </p>
+                {% endif %}
+
                 {% if event.url %}
                 <h6 class="text-muted">Event Link</h6>
                 <p class="mb-3">
@@ -175,19 +186,23 @@
                 <h5 class="mb-0"><i class="bi bi-check-circle"></i> Going ({{ going_users|length }})</h5>
             </div>
             <div class="card-body">
-                {% if going_users %}
-                <div class="list-group list-group-flush">
-                    {% for user_resp in going_users %}
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span><i class="bi bi-person"></i> {{ user_resp.user.username }}</span>
-                            <small class="text-muted">{{ user_resp.responded_at.strftime('%b %d') }}</small>
+                {% if current_user.is_authenticated %}
+                    {% if going_users %}
+                    <div class="list-group list-group-flush">
+                        {% for user_resp in going_users %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-person"></i> {{ user_resp.user.username }}</span>
+                                <small class="text-muted">{{ user_resp.responded_at.strftime('%b %d') }}</small>
+                            </div>
                         </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
-                </div>
+                    {% else %}
+                    <p class="text-muted mb-0">No one yet</p>
+                    {% endif %}
                 {% else %}
-                <p class="text-muted mb-0">No one yet</p>
+                    <p class="text-muted mb-0">{{ going_users|length }} people are going.</p>
                 {% endif %}
             </div>
         </div>
@@ -197,19 +212,23 @@
                 <h5 class="mb-0"><i class="bi bi-star"></i> Interested ({{ interested_users|length }})</h5>
             </div>
             <div class="card-body">
-                {% if interested_users %}
-                <div class="list-group list-group-flush">
-                    {% for user_resp in interested_users %}
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span><i class="bi bi-person"></i> {{ user_resp.user.username }}</span>
-                            <small class="text-muted">{{ user_resp.responded_at.strftime('%b %d') }}</small>
+                {% if current_user.is_authenticated %}
+                    {% if interested_users %}
+                    <div class="list-group list-group-flush">
+                        {% for user_resp in interested_users %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-person"></i> {{ user_resp.user.username }}</span>
+                                <small class="text-muted">{{ user_resp.responded_at.strftime('%b %d') }}</small>
+                            </div>
                         </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
-                </div>
+                    {% else %}
+                    <p class="text-muted mb-0">No one yet</p>
+                    {% endif %}
                 {% else %}
-                <p class="text-muted mb-0">No one yet</p>
+                    <p class="text-muted mb-0">{{ interested_users|length }} people are interested.</p>
                 {% endif %}
             </div>
         </div>
@@ -219,19 +238,23 @@
                 <h5 class="mb-0"><i class="bi bi-x-circle"></i> Not Going ({{ not_going_users|length }})</h5>
             </div>
             <div class="card-body">
-                {% if not_going_users %}
-                <div class="list-group list-group-flush">
-                    {% for user_resp in not_going_users %}
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span><i class="bi bi-person"></i> {{ user_resp.user.username }}</span>
-                            <small class="text-muted">{{ user_resp.responded_at.strftime('%b %d') }}</small>
+                {% if current_user.is_authenticated %}
+                    {% if not_going_users %}
+                    <div class="list-group list-group-flush">
+                        {% for user_resp in not_going_users %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-person"></i> {{ user_resp.user.username }}</span>
+                                <small class="text-muted">{{ user_resp.responded_at.strftime('%b %d') }}</small>
+                            </div>
                         </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
-                </div>
+                    {% else %}
+                    <p class="text-muted mb-0">No one yet</p>
+                    {% endif %}
                 {% else %}
-                <p class="text-muted mb-0">No one yet</p>
+                    <p class="text-muted mb-0">{{ not_going_users|length }} people are not going.</p>
                 {% endif %}
             </div>
         </div>
