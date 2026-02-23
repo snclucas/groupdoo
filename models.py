@@ -47,6 +47,16 @@ class User(UserMixin, db.Model):
         """Check if the provided password matches the hash"""
         return check_password_hash(self.password_hash, password)
 
+    def __setattr__(self, name, value):
+        """Normalize username and email to lowercase"""
+        if name == 'username' and value is not None:
+            value = value.lower().strip()
+        elif name == 'email' and value is not None:
+            value = value.lower().strip()
+        super().__setattr__(name, value)
+
+    # ...existing code...
+
     def get_pending_invitations(self):
         """Get pending invitations for this user"""
         return self.received_invitations.filter_by(status='pending').all()

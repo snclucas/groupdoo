@@ -73,13 +73,15 @@ class RegistrationForm(FlaskForm):
 
     def validate_username(self, username):
         """Check if username is already taken"""
-        user = User.query.filter_by(username=username.data).first()
+        username_normalized = username.data.lower().strip()
+        user = User.query.filter_by(username=username_normalized).first()
         if user:
             raise ValidationError('Username already taken. Please choose a different one.')
 
     def validate_email(self, email):
         """Check if email is already registered"""
-        user = User.query.filter_by(email=email.data).first()
+        email_normalized = email.data.lower().strip()
+        user = User.query.filter_by(email=email_normalized).first()
         if user:
             raise ValidationError('Email already registered. Please use a different one.')
 
@@ -140,7 +142,7 @@ class InviteUserForm(FlaskForm):
 
     def validate_username(self, username):
         """Check if username exists"""
-        user = User.query.filter_by(username=username.data).first()
+        user = User.query.filter_by(username=username.data.lower().strip()).first()
         if not user:
             raise ValidationError('User not found. Please check the username.')
 

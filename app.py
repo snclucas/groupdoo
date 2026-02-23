@@ -342,7 +342,7 @@ def login():
 
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
+        user = User.query.filter_by(username=form.username.data.lower().strip()).first()
         if user and user.locked_until and to_utc(user.locked_until) > now_utc():
             flash('Account is temporarily locked due to failed login attempts. Try again later.', 'danger')
             log_audit('login_locked', f'Locked login attempt for {user.username}', user_id=user.id)
@@ -439,7 +439,7 @@ def verify_email(token):
 @limiter.limit("5 per hour")
 def resend_verification():
     """Resend a verification email"""
-    email = (request.args.get('email') or session.get('pending_verify_email') or '').strip()
+    email = (request.args.get('email') or session.get('pending_verify_email') or '').strip().lower()
     if not email:
         flash('Please enter your email on the login page to resend verification.', 'info')
         return redirect(url_for('login'))
@@ -469,7 +469,7 @@ def password_reset_request():
     """Request a password reset link"""
     form = PasswordResetRequestForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data).first()
+        user = User.query.filter_by(email=form.email.data.lower().strip()).first()
         if user:
             ensure_password_reset_token(user)
             reset_url = url_for('password_reset_confirm', token=user.password_reset_token, _external=True)
@@ -1016,7 +1016,7 @@ def group_invite(group_id):
 
     form = InviteUserForm()
     if form.validate_on_submit():
-        invitee = User.query.filter_by(username=form.username.data).first()
+        invitee = User.query.filter_by(username=form.username.data.lower().strip()).first()
 
         # Check if user is already a member
         if group.is_member(invitee):
@@ -1628,7 +1628,7 @@ def account_profile():
         profile_form.language.data = current_user.language or app.config['BABEL_DEFAULT_LOCALE']
 
     if profile_form.submit.data and profile_form.validate():
-        new_email = profile_form.email.data.strip()
+        new_email = profile_form.email.data.strip().lower()
         new_language = profile_form.language.data
         email_changed = new_email != current_user.email
         language_changed = new_language != current_user.language
