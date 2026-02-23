@@ -660,6 +660,54 @@ def notification_dismiss(notification_id):
 
 # Group Routes
 
+@app.route('/my-events')
+@login_required
+def my_events():
+    """List all events user is attending across all groups, sorted by date"""
+    # Get all events where the user has RSVP'd as "going"
+    attending_events_query = db.session.query(Event, EventResponse).join(
+        EventResponse, Event.id == EventResponse.event_id
+    ).filter(
+        EventResponse.user_id == current_user.id,
+        EventResponse.status == 'going'
+    ).order_by(Event.event_date.asc()).all()
+
+    # Extract Event objects from tuples and convert dates
+    attending_events = []
+    for event, response in attending_events_query:
+        event.event_date_utc = to_utc(event.event_date)
+        attending_events.append(event)
+
+    # Also get events from groups the user owns or is a member of
+    # where they might not have explicitly RSVP'd yet but can see
+    owned_groups = current_user.owned_groups.all()
+    member_groups = [m.group for m in current_user.group_memberships.all()]
+    all_user_groups = owned_groups + member_groups
+    group_ids = [g.id for g in all_user_groups]
+
+    # Get all events from user's groups, ordered by date
+    all_group_events = []
+    if group_ids:
+        all_group_events = Event.query.filter(
+            Event.group_id.in_(group_ids),
+            Event.event_date >= now_utc()  # Only future events
+        ).order_by(Event.event_date.asc()).all()
+
+    # Ensure all events have timezone-aware dates
+    for event in all_group_events:
+        event.event_date_utc = to_utc(event.event_date)
+
+    return render_template('events/my_events.html',
+                         attending_events=attending_events,
+                         all_group_events=all_group_events,
+                         current_time=now_utc())
+
+# ...existing code...
+    """List all public groups"""
+    public_groups = Group.query.filter_by(is_public=True).order_by(Group.created_at.desc()).all()
+    return render_template('groups/list.html', groups=public_groups)
+
+
 @app.route('/groups')
 @login_required
 def groups_list():
