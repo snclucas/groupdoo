@@ -22,6 +22,23 @@ class Config:
         'it': 'Italiano'
     }
 
+    # Email configuration
+    EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'console')  # console | smtp
+    EMAIL_FROM = os.environ.get('EMAIL_FROM', 'noreply@groupdoo.local')
+    EMAIL_SUBJECT_PREFIX = os.environ.get('EMAIL_SUBJECT_PREFIX', '[Groupdoo] ')
+    EMAIL_DEBUG_TO = os.environ.get('EMAIL_DEBUG_TO', '')
+    EMAIL_FAIL_SILENTLY = os.environ.get('EMAIL_FAIL_SILENTLY', 'false').lower() == 'true'
+    EMAIL_VERIFY_TOKEN_HOURS = int(os.environ.get('EMAIL_VERIFY_TOKEN_HOURS', '24'))
+    EMAIL_PASSWORD_RESET_HOURS = int(os.environ.get('EMAIL_PASSWORD_RESET_HOURS', '2'))
+
+    EMAIL_SMTP_HOST = os.environ.get('EMAIL_SMTP_HOST', 'localhost')
+    EMAIL_SMTP_PORT = int(os.environ.get('EMAIL_SMTP_PORT', '587'))
+    EMAIL_SMTP_USERNAME = os.environ.get('EMAIL_SMTP_USERNAME')
+    EMAIL_SMTP_PASSWORD = os.environ.get('EMAIL_SMTP_PASSWORD')
+    EMAIL_SMTP_USE_TLS = os.environ.get('EMAIL_SMTP_USE_TLS', 'true').lower() == 'true'
+    EMAIL_SMTP_USE_SSL = os.environ.get('EMAIL_SMTP_USE_SSL', 'false').lower() == 'true'
+    EMAIL_SMTP_TIMEOUT = int(os.environ.get('EMAIL_SMTP_TIMEOUT', '10'))
+
     # Database configuration for MariaDB
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
         'mysql+pymysql://root:password@localhost:3306/groupdoo_db'
@@ -91,4 +108,3 @@ class Config:
         'analytics',
         'third_party_sharing'
     ]
-

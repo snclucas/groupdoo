@@ -5,6 +5,12 @@
 {% block content %}
 <div class="row justify-content-center mt-5">
     <div class="col-md-6">
+        {% if session.get('pending_verify_email') %}
+        <div class="alert alert-warning">
+            Please verify your email to continue.
+            <a href="{{ url_for('resend_verification', email=session.get('pending_verify_email')) }}" class="alert-link">Resend verification email</a>
+        </div>
+        {% endif %}
         <div class="card shadow">
             <div class="card-body">
                 <h2 class="card-title text-center mb-4">Login</h2>
@@ -45,6 +51,10 @@
                     </div>
                 </form>
 
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('password_reset_request') }}">Forgot your password?</a>
+                </div>
+
                 <hr class="my-4">
                 <p class="text-center mb-0">
                     Don't have an account? <a href="{{ url_for('register') }}">Register here</a>
@@ -54,4 +64,3 @@
     </div>
 </div>
 {% endblock %}
-

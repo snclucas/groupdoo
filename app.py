@@ -4,9 +4,12 @@ from flask import Flask, render_template, redirect, url_for, flash, request, ses
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_babel import Babel, gettext, lazy_gettext
 from config import Config
+from email_service import EmailClient, EmailSendError, build_email_config
 from models import db, User, Group, GroupMember, GroupInvitation, Event, EventResponse, Tag, GroupTag, EventTag, GroupInviteToken
 from models import Notification, AuditLog, utcnow
 from forms import LoginForm, RegistrationForm, GroupForm, InviteUserForm, EventForm, AccountDeleteForm
+from forms import PasswordResetRequestForm, PasswordResetForm
+from forms import ProfileUpdateForm, PasswordChangeForm
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_
 from datetime import datetime, timedelta, timezone
@@ -231,6 +234,57 @@ def build_event_ics(event, event_url):
     return '\r\n'.join(lines) + '\r\n'
 
 
+def get_email_client() -> EmailClient:
+    """Create an email client using current config."""
+    return EmailClient(build_email_config(Config))
+
+
+def send_templated_email(to_addr: str, subject: str, template_base: str, context: dict) -> None:
+    """Render and send a templated email (text + html)."""
+    body_text = render_template(f'emails/{template_base}.txt', **context)
+    body_html = render_template(f'emails/{template_base}.html', **context)
+    get_email_client().send_email(
+        to_addrs=to_addr,
+        subject=subject,
+        body_text=body_text,
+        body_html=body_html,
+    )
+
+
+def generate_token() -> str:
+    """Generate a random token suitable for email flows."""
+    return secrets.token_urlsafe(32)
+
+
+def ensure_email_verification(user: User) -> None:
+    """Issue a fresh email verification token if needed."""
+    if user.email_verified:
+        return
+    if not user.email_verify_token or not user.email_verify_expires_at or user.email_verify_expires_at < now_utc():
+        user.email_verify_token = generate_token()
+        user.email_verify_expires_at = now_utc() + timedelta(hours=app.config['EMAIL_VERIFY_TOKEN_HOURS'])
+        db.session.commit()
+
+
+def send_verification_email(user: User) -> None:
+    """Send a verification email for the given user."""
+    ensure_email_verification(user)
+    verify_url = url_for('verify_email', token=user.email_verify_token, _external=True)
+    send_templated_email(
+        user.email,
+        'Verify your email',
+        'verify_email',
+        {'user': user, 'verify_url': verify_url}
+    )
+
+
+def ensure_password_reset_token(user: User) -> None:
+    """Issue a fresh password reset token."""
+    user.password_reset_token = generate_token()
+    user.password_reset_expires_at = now_utc() + timedelta(hours=app.config['EMAIL_PASSWORD_RESET_HOURS'])
+    db.session.commit()
+
+
 @login_manager.user_loader
 def load_user(user_id):
     """Load user by ID for Flask-Login"""
@@ -307,6 +361,15 @@ def login():
             flash('Invalid username or password', 'danger')
             return redirect(url_for('login'))
 
+        if not user.email_verified:
+            session['pending_verify_email'] = user.email
+            try:
+                send_verification_email(user)
+            except EmailSendError:
+                pass
+            flash('Please verify your email before logging in. Check your inbox for a verification link.', 'warning')
+            return redirect(url_for('login'))
+
         user.failed_login_attempts = 0
         user.locked_until = None
         db.session.commit()
@@ -337,13 +400,112 @@ def register():
     if form.validate_on_submit():
         user = User(username=form.username.data, email=form.email.data)
         user.set_password(form.password.data)
+        user.email_verified = False
+        user.email_verify_token = generate_token()
+        user.email_verify_expires_at = now_utc() + timedelta(hours=app.config['EMAIL_VERIFY_TOKEN_HOURS'])
         db.session.add(user)
         db.session.commit()
 
-        flash('Congratulations, you are now registered! Please log in.', 'success')
+        try:
+            send_verification_email(user)
+        except EmailSendError:
+            pass
+
+        flash('Registration successful. Please check your email to verify your account.', 'success')
         return redirect(url_for('login'))
 
     return render_template('register.html', form=form)
+
+
+@app.route('/verify-email/<token>')
+def verify_email(token):
+    """Verify a user's email address"""
+    user = User.query.filter_by(email_verify_token=token).first()
+    if not user or not user.email_verify_expires_at or user.email_verify_expires_at < now_utc():
+        flash('This verification link is invalid or has expired.', 'danger')
+        return redirect(url_for('login'))
+
+    user.email_verified = True
+    user.email_verify_token = None
+    user.email_verify_expires_at = None
+    db.session.commit()
+
+    session.pop('pending_verify_email', None)
+    flash('Your email has been verified. You can now log in.', 'success')
+    return redirect(url_for('login'))
+
+
+@app.route('/verify-email/resend')
+@limiter.limit("5 per hour")
+def resend_verification():
+    """Resend a verification email"""
+    email = (request.args.get('email') or session.get('pending_verify_email') or '').strip()
+    if not email:
+        flash('Please enter your email on the login page to resend verification.', 'info')
+        return redirect(url_for('login'))
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        flash('If that email exists, a verification link has been sent.', 'info')
+        return redirect(url_for('login'))
+
+    if user.email_verified:
+        flash('Your email is already verified. You can log in.', 'success')
+        return redirect(url_for('login'))
+
+    try:
+        send_verification_email(user)
+    except EmailSendError:
+        pass
+
+    session['pending_verify_email'] = user.email
+    flash('A new verification email has been sent.', 'info')
+    return redirect(url_for('login'))
+
+
+@app.route('/password-reset', methods=['GET', 'POST'])
+@limiter.limit("5 per hour")
+def password_reset_request():
+    """Request a password reset link"""
+    form = PasswordResetRequestForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        if user:
+            ensure_password_reset_token(user)
+            reset_url = url_for('password_reset_confirm', token=user.password_reset_token, _external=True)
+            try:
+                send_templated_email(
+                    user.email,
+                    'Reset your password',
+                    'reset_password',
+                    {'user': user, 'reset_url': reset_url}
+                )
+            except EmailSendError:
+                pass
+        flash('If that email exists, a reset link has been sent.', 'info')
+        return redirect(url_for('login'))
+
+    return render_template('auth/reset_request.html', form=form)
+
+
+@app.route('/password-reset/<token>', methods=['GET', 'POST'])
+def password_reset_confirm(token):
+    """Confirm a password reset"""
+    form = PasswordResetForm()
+    user = User.query.filter_by(password_reset_token=token).first()
+    if not user or not user.password_reset_expires_at or user.password_reset_expires_at < now_utc():
+        flash('This password reset link is invalid or has expired.', 'danger')
+        return redirect(url_for('password_reset_request'))
+
+    if form.validate_on_submit():
+        user.set_password(form.password.data)
+        user.password_reset_token = None
+        user.password_reset_expires_at = None
+        db.session.commit()
+        flash('Your password has been updated. You can now log in.', 'success')
+        return redirect(url_for('login'))
+
+    return render_template('auth/reset_password.html', form=form, token=token)
 
 
 @app.route('/logout')
@@ -1379,7 +1541,12 @@ def account_delete():
 
             new_owner_member = other_members[0]
             group.owner_id = new_owner_member.user_id
+
+            # Ensure new owner is an admin
             new_owner_member.role = 'admin'
+
+            db.session.commit()
+
             log_audit('group_owner_transfer', f'Transferred ownership to user {new_owner_member.user_id} in group {group.id}', user_id=user_id)
             db.session.add(Notification(
                 user_id=new_owner_member.user_id,
@@ -1398,6 +1565,65 @@ def account_delete():
         return redirect(url_for('index'))
 
     return render_template('account/delete.html', form=form)
+
+
+@app.route('/account/profile', methods=['GET', 'POST'])
+@login_required
+def account_profile():
+    """Manage profile details and password"""
+    profile_form = ProfileUpdateForm(prefix='profile')
+    password_form = PasswordChangeForm(prefix='password')
+    profile_form.language.choices = [(code, name) for code, name in app.config['LANGUAGES'].items()]
+
+    if request.method == 'GET':
+        profile_form.email.data = current_user.email
+        profile_form.language.data = current_user.language or app.config['BABEL_DEFAULT_LOCALE']
+
+    if profile_form.submit.data and profile_form.validate():
+        new_email = profile_form.email.data.strip()
+        new_language = profile_form.language.data
+        email_changed = new_email != current_user.email
+        language_changed = new_language != current_user.language
+
+        if email_changed:
+            existing = User.query.filter(User.email == new_email, User.id != current_user.id).first()
+            if existing:
+                profile_form.email.errors.append('Email already registered. Please use a different one.')
+                return render_template('account/profile.html', profile_form=profile_form, password_form=password_form)
+            current_user.email = new_email
+            current_user.email_verified = False
+            current_user.email_verify_token = generate_token()
+            current_user.email_verify_expires_at = now_utc() + timedelta(hours=app.config['EMAIL_VERIFY_TOKEN_HOURS'])
+
+        if language_changed:
+            current_user.language = new_language
+            session['language'] = new_language
+
+        if email_changed or language_changed:
+            db.session.commit()
+            if email_changed:
+                try:
+                    send_verification_email(current_user)
+                except EmailSendError:
+                    pass
+                flash('Email updated. Please verify your new email address.', 'warning')
+            else:
+                flash('Profile updated successfully.', 'success')
+            return redirect(url_for('account_profile'))
+
+        flash('No changes to update.', 'info')
+        return redirect(url_for('account_profile'))
+
+    if password_form.submit.data and password_form.validate():
+        if not current_user.check_password(password_form.current_password.data):
+            password_form.current_password.errors.append('Current password is incorrect.')
+        else:
+            current_user.set_password(password_form.new_password.data)
+            db.session.commit()
+            flash('Password updated successfully.', 'success')
+            return redirect(url_for('account_profile'))
+
+    return render_template('account/profile.html', profile_form=profile_form, password_form=password_form)
 
 
 def slugify(value):

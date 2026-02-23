@@ -173,9 +173,54 @@ Rate limiting is enabled using `Flask-Limiter` with default limits and tighter l
 - `BABEL_DEFAULT_LOCALE`: Default language (default: `en`)
   - Available: `en` (English), `fr` (French), `es` (Spanish), `de` (German), `nl` (Dutch), `it` (Italian)
 
+### Email
+- `EMAIL_BACKEND`: `console` or `smtp` (default: `console`)
+- `EMAIL_FROM`: Sender address (default: `noreply@groupdoo.local`)
+- `EMAIL_SUBJECT_PREFIX`: Subject prefix (default: `[Groupdoo] `)
+- `EMAIL_DEBUG_TO`: Default recipient for testing
+- `EMAIL_FAIL_SILENTLY`: `true` to suppress send errors (default: `false`)
+- `EMAIL_VERIFY_TOKEN_HOURS`: Verification link lifetime in hours (default: `24`)
+- `EMAIL_PASSWORD_RESET_HOURS`: Password reset link lifetime in hours (default: `2`)
+- `EMAIL_SMTP_HOST`: SMTP host (default: `localhost`)
+- `EMAIL_SMTP_PORT`: SMTP port (default: `587`)
+- `EMAIL_SMTP_USERNAME`: SMTP username
+- `EMAIL_SMTP_PASSWORD`: SMTP password
+- `EMAIL_SMTP_USE_TLS`: `true` to use STARTTLS (default: `true`)
+- `EMAIL_SMTP_USE_SSL`: `true` to use SSL (default: `false`)
+- `EMAIL_SMTP_TIMEOUT`: SMTP timeout in seconds (default: `10`)
+
 ### Security and Database
 - `SECRET_KEY`: Flask secret key for sessions (set in production!)
 - `DATABASE_URL`: Database connection string
+
+## Email System
+
+Groupdoo includes a configurable email system ready to plug into registration/login flows later. The default backend is `console` (prints emails to stdout). Switch to `smtp` when you have credentials.
+
+New auth flows:
+- Email verification is required before login.
+- Password reset is available at `/password-reset`.
+
+Test the configuration using the provided harness:
+
+```powershell
+$env:EMAIL_BACKEND = "console"
+$env:EMAIL_DEBUG_TO = "you@example.com"
+python email_test.py
+```
+
+SMTP example:
+
+```powershell
+$env:EMAIL_BACKEND = "smtp"
+$env:EMAIL_SMTP_HOST = "smtp.example.com"
+$env:EMAIL_SMTP_PORT = "587"
+$env:EMAIL_SMTP_USERNAME = "user"
+$env:EMAIL_SMTP_PASSWORD = "pass"
+$env:EMAIL_FROM = "noreply@example.com"
+$env:EMAIL_DEBUG_TO = "you@example.com"
+python email_test.py
+```
 
 ## Internationalization (i18n)
 

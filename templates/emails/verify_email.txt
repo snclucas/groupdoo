@@ -1,0 +1,11 @@
+Hello {{ user.username }},
+
+Please verify your Groupdoo account by clicking the link below:
+
+{{ verify_url }}
+
+If you did not create an account, you can ignore this email.
+
+Thanks,
+Groupdoo
+

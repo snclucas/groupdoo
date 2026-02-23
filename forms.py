@@ -29,6 +29,28 @@ class LoginForm(FlaskForm):
     submit = SubmitField('Sign In')
 
 
+class PasswordResetRequestForm(FlaskForm):
+    """Form for requesting a password reset"""
+    email = StringField('Email', validators=[
+        DataRequired(),
+        Email(message='Invalid email address')
+    ])
+    submit = SubmitField('Send Reset Link')
+
+
+class PasswordResetForm(FlaskForm):
+    """Form for confirming a password reset"""
+    password = PasswordField('New Password', validators=[
+        DataRequired(),
+        validate_strong_password
+    ])
+    password2 = PasswordField('Confirm New Password', validators=[
+        DataRequired(),
+        EqualTo('password', message='Passwords must match')
+    ])
+    submit = SubmitField('Reset Password')
+
+
 class RegistrationForm(FlaskForm):
     """Form for user registration"""
     username = StringField('Username', validators=[
@@ -60,6 +82,30 @@ class RegistrationForm(FlaskForm):
         user = User.query.filter_by(email=email.data).first()
         if user:
             raise ValidationError('Email already registered. Please use a different one.')
+
+
+class ProfileUpdateForm(FlaskForm):
+    """Form for updating account profile details"""
+    email = StringField('Email', validators=[
+        DataRequired(),
+        Email(message='Invalid email address')
+    ])
+    language = SelectField('Language', validators=[DataRequired()])
+    submit = SubmitField('Save Changes')
+
+
+class PasswordChangeForm(FlaskForm):
+    """Form for changing the current user's password"""
+    current_password = PasswordField('Current Password', validators=[DataRequired()])
+    new_password = PasswordField('New Password', validators=[
+        DataRequired(),
+        validate_strong_password
+    ])
+    new_password2 = PasswordField('Confirm New Password', validators=[
+        DataRequired(),
+        EqualTo('new_password', message='Passwords must match')
+    ])
+    submit = SubmitField('Change Password')
 
 
 class GroupForm(FlaskForm):

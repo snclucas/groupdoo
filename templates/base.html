@@ -91,6 +91,11 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li>
+                                <a class="dropdown-item" href="{{ url_for('account_profile') }}">
+                                    <i class="bi bi-person-gear"></i> {{ _('Profile') }}
+                                </a>
+                            </li>
+                            <li>
                                 <a class="dropdown-item text-danger" href="{{ url_for('account_delete') }}">
                                     <i class="bi bi-trash"></i> {{ _('Delete Account') }}
                                 </a>

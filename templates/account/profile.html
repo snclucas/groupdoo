@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Account Profile - Groupdoo{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-body">
+                <h3 class="card-title mb-4">Profile</h3>
+                <form method="POST" action="{{ url_for('account_profile') }}">
+                    {{ profile_form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" value="{{ current_user.username }}" disabled>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ profile_form.email.label(class="form-label") }}
+                        {{ profile_form.email(class="form-control" + (" is-invalid" if profile_form.email.errors else "")) }}
+                        {% if profile_form.email.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in profile_form.email.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        {% if not current_user.email_verified %}
+                        <div class="form-text text-warning">Email not verified.</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ profile_form.language.label(class="form-label") }}
+                        {{ profile_form.language(class="form-select" + (" is-invalid" if profile_form.language.errors else "")) }}
+                        {% if profile_form.language.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in profile_form.language.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    {% if not current_user.email_verified %}
+                    <div class="mb-3">
+                        <a class="btn btn-outline-warning btn-sm" href="{{ url_for('resend_verification', email=current_user.email) }}">
+                            <i class="bi bi-envelope-arrow-up"></i> Resend verification email
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-grid">
+                        {{ profile_form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow">
+            <div class="card-body">
+                <h3 class="card-title mb-4">Change Password</h3>
+                <form method="POST" action="{{ url_for('account_profile') }}">
+                    {{ password_form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        {{ password_form.current_password.label(class="form-label") }}
+                        {{ password_form.current_password(class="form-control" + (" is-invalid" if password_form.current_password.errors else "")) }}
+                        {% if password_form.current_password.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in password_form.current_password.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ password_form.new_password.label(class="form-label") }}
+                        {{ password_form.new_password(class="form-control" + (" is-invalid" if password_form.new_password.errors else "")) }}
+                        {% if password_form.new_password.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in password_form.new_password.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ password_form.new_password2.label(class="form-label") }}
+                        {{ password_form.new_password2(class="form-control" + (" is-invalid" if password_form.new_password2.errors else "")) }}
+                        {% if password_form.new_password2.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in password_form.new_password2.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-grid">
+                        {{ password_form.submit(class="btn btn-outline-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
