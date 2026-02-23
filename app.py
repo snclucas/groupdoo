@@ -702,12 +702,6 @@ def my_events():
                          all_group_events=all_group_events,
                          current_time=now_utc())
 
-# ...existing code...
-    """List all public groups"""
-    public_groups = Group.query.filter_by(is_public=True).order_by(Group.created_at.desc()).all()
-    return render_template('groups/list.html', groups=public_groups)
-
-
 @app.route('/groups')
 @login_required
 def groups_list():
@@ -755,15 +749,18 @@ def group_view(group_id):
     """View a group"""
     group = Group.query.get_or_404(group_id)
 
-    # Check if user can view this group
-    if not group.can_view(current_user):
-        flash('You do not have permission to view this group.', 'danger')
-        return redirect(url_for('groups_list'))
+    # Site admins can view any group
+    if not (current_user.is_authenticated and current_user.is_admin):
+        # Check if user can view this group (for non-admins)
+        if not group.can_view(current_user):
+            flash('You do not have permission to view this group.', 'danger')
+            return redirect(url_for('groups_list'))
 
     members = group.members.all()
     is_owner = group.is_owner(current_user)
     is_member = group.is_member(current_user)
     is_admin = group.is_admin(current_user)
+    is_site_admin = current_user.is_authenticated and current_user.is_admin
     invite_tokens = []
     if is_owner and group.invite_method == 'token':
         invite_tokens = GroupInviteToken.query.filter_by(group_id=group.id, used_at=None).order_by(GroupInviteToken.created_at.desc()).all()
@@ -781,6 +778,7 @@ def group_view(group_id):
                          is_owner=is_owner,
                          is_member=is_member,
                          is_admin=is_admin,
+                         is_site_admin=is_site_admin,
                          invite_tokens=invite_tokens,
                          invite_method_label=invite_method_label,
                          events=events,
@@ -1200,8 +1198,8 @@ def events_list(group_id):
     """List all events for a group"""
     group = Group.query.get_or_404(group_id)
 
-    # Check if user can view this group
-    if not group.can_view(current_user):
+    # Site admins can view any group's events
+    if not (current_user.is_admin or group.can_view(current_user)):
         flash('You do not have permission to view this group.', 'danger')
         return redirect(url_for('groups_list'))
 
@@ -1273,8 +1271,11 @@ def event_view(group_id, event_id):
         flash('Event not found in this group.', 'danger')
         return redirect(url_for('events_list', group_id=group.id))
 
-    # Public events are viewable by anyone; private events require membership
-    if not group.is_public:
+    # Site admins can view any event
+    is_site_admin = current_user.is_authenticated and current_user.is_admin
+
+    # Public events are viewable by anyone; private events require membership or admin status
+    if not group.is_public and not is_site_admin:
         if not current_user.is_authenticated:
             flash('Please log in to view this private group event.', 'warning')
             return redirect(url_for('login', next=request.path))
@@ -1296,6 +1297,7 @@ def event_view(group_id, event_id):
                          going_users=going_users,
                          interested_users=interested_users,
                          not_going_users=not_going_users,
+                         is_site_admin=is_site_admin,
                          current_time=now_utc())
 
 
@@ -1309,7 +1311,10 @@ def event_calendar_download(group_id, event_id):
         flash('Event not found in this group.', 'danger')
         return redirect(url_for('events_list', group_id=group.id))
 
-    if not group.is_public:
+    # Site admins can download any event
+    is_site_admin = current_user.is_authenticated and current_user.is_admin
+
+    if not group.is_public and not is_site_admin:
         if not current_user.is_authenticated:
             flash('Please log in to view this private group event.', 'warning')
             return redirect(url_for('login', next=request.path))
@@ -1926,7 +1931,231 @@ def gdpr_consent():
     user_consents = {c.consent_type: c.consented for c in current_user.gdpr_consents}
     consent_types = app.config['GDPR_CONSENT_TYPES']
 
-    return render_template('gdpr/consent.html', consents=user_consents, consent_types=consent_types)
+    return render_template('gdpr/consent.html',consent_types=consent_types, consents=user_consents)
+
+
+@app.route('/admin/users')
+@login_required
+def admin_users():
+    """Admin user management"""
+    if not current_user.is_admin:
+        flash('Admin access required.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # Pagination
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+
+    # Get all users with pagination
+    pagination = User.query.order_by(User.created_at.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    users = pagination.items
+
+    return render_template('admin/users.html',
+                         users=users,
+                         pagination=pagination,
+                         page=page)
+
+
+@app.route('/admin/groups')
+@login_required
+def admin_groups():
+    """Admin group management"""
+    if not current_user.is_admin:
+        flash('Admin access required.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # Pagination
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+
+    # Get all groups with pagination
+    pagination = Group.query.order_by(Group.created_at.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    groups = pagination.items
+
+    return render_template('admin/groups.html',
+                         groups=groups,
+                         pagination=pagination,
+                         page=page)
+
+
+@app.route('/admin/events')
+@login_required
+def admin_events():
+    """Admin event management"""
+    if not current_user.is_admin:
+        flash('Admin access required.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # Pagination
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+
+    # Get all events with pagination
+    pagination = Event.query.order_by(Event.created_at.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    events = pagination.items
+    for event in events:
+        event.event_date_utc = to_utc(event.event_date)
+
+    return render_template('admin/events.html',
+                         events=events,
+                         pagination=pagination,
+                         page=page,
+                         current_time=now_utc())
+
+
+@app.route('/admin/reports')
+@login_required
+def admin_reports():
+    """Admin report moderation"""
+    if not current_user.is_admin:
+        flash('Admin access required.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # Filter by status
+    status = request.args.get('status', 'pending')
+
+    # Pagination
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+
+    # Get reports by status with pagination
+    if status == 'all':
+        pagination = Report.query.order_by(Report.created_at.desc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+    else:
+        pagination = Report.query.filter_by(status=status).order_by(
+            Report.created_at.desc()
+        ).paginate(page=page, per_page=per_page, error_out=False)
+
+    reports = pagination.items
+
+    # Count by status
+    pending = Report.query.filter_by(status='pending').count()
+    under_review = Report.query.filter_by(status='under_review').count()
+    resolved = Report.query.filter_by(status='resolved').count()
+    dismissed = Report.query.filter_by(status='dismissed').count()
+
+    return render_template('admin/reports.html',
+                         reports=reports,
+                         pagination=pagination,
+                         page=page,
+                         status=status,
+                         pending=pending,
+                         under_review=under_review,
+                         resolved=resolved,
+                         dismissed=dismissed)
+
+
+@app.route('/admin/reports/<int:report_id>/status/<new_status>', methods=['POST'])
+@login_required
+def admin_update_report_status(report_id, new_status):
+    """Update report status"""
+    if not current_user.is_admin:
+        flash('Admin access required.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    report = Report.query.get_or_404(report_id)
+
+    # Validate status
+    valid_statuses = ['pending', 'under_review', 'resolved', 'dismissed']
+    if new_status not in valid_statuses:
+        flash('Invalid status.', 'danger')
+        return redirect(url_for('admin_reports'))
+
+    old_status = report.status
+    report.status = new_status
+    report.moderator_id = current_user.id
+    report.reviewed_at = now_utc()
+
+    if new_status in ['resolved', 'dismissed']:
+        report.resolved_at = now_utc()
+
+    db.session.commit()
+
+    log_audit('report_status_updated',
+              f'Report {report_id} status changed from {old_status} to {new_status}',
+              user_id=current_user.id)
+
+    flash(f'Report status updated to {new_status}.', 'success')
+    return redirect(url_for('admin_reports', status=new_status))
+
+
+@app.route('/admin/user/<int:user_id>/toggle-admin', methods=['POST'])
+@login_required
+def admin_toggle_user_admin(user_id):
+    """Toggle admin status for a user"""
+    if not current_user.is_admin:
+        flash('Admin access required.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    user = User.query.get_or_404(user_id)
+
+    # Prevent user from removing their own admin status
+    if user.id == current_user.id:
+        flash('You cannot change your own admin status.', 'warning')
+        return redirect(url_for('admin_users'))
+
+    old_status = user.is_admin
+    user.is_admin = not user.is_admin
+    db.session.commit()
+
+    new_status = 'admin' if user.is_admin else 'regular user'
+    log_audit('user_admin_status_changed',
+              f'User {user.username} admin status changed from {old_status} to {user.is_admin}',
+              user_id=current_user.id)
+
+    flash(f'User {user.username} is now a {new_status}.', 'success')
+    return redirect(url_for('admin_users'))
+
+
+@app.route('/admin')
+@login_required
+def admin_dashboard():
+    """Admin dashboard - overview of system statistics"""
+    if not current_user.is_admin:
+        flash('Admin access required.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # Get statistics
+    total_users = User.query.count()
+    total_groups = Group.query.count()
+    total_events = Event.query.count()
+    total_reports = Report.query.count()
+
+    # Recent reports
+    recent_reports = Report.query.order_by(Report.created_at.desc()).limit(5).all()
+
+    # Recent users
+    recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
+
+    # Pending reports
+    pending_reports = Report.query.filter_by(status='pending').count()
+
+    # Public vs Private groups
+    public_groups = Group.query.filter_by(is_public=True).count()
+    private_groups = Group.query.filter_by(is_public=False).count()
+
+    # Admin users
+    admin_users = User.query.filter_by(is_admin=True).count()
+
+    return render_template('admin/dashboard.html',
+                         total_users=total_users,
+                         total_groups=total_groups,
+                         total_events=total_events,
+                         total_reports=total_reports,
+                         pending_reports=pending_reports,
+                         public_groups=public_groups,
+                         private_groups=private_groups,
+                         admin_users=admin_users,
+                         recent_reports=recent_reports,
+                         recent_users=recent_users)
 
 
 @app.route('/gdpr/export', methods=['GET', 'POST'])

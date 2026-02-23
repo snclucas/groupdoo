@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - Review Reports - Groupdoo{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="mb-0">
+                <i class="bi bi-flag"></i> Review Reports
+            </h2>
+            <small class="text-muted">{{ pagination.total }} total reports</small>
+        </div>
+    </div>
+
+    <!-- Status Tabs -->
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item" role="presentation">
+            <a class="nav-link {% if status == 'pending' %}active{% endif %}"
+               href="{{ url_for('admin_reports', status='pending') }}">
+                Pending
+                {% if pending > 0 %}<span class="badge bg-warning ms-2">{{ pending }}</span>{% endif %}
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link {% if status == 'under_review' %}active{% endif %}"
+               href="{{ url_for('admin_reports', status='under_review') }}">
+                Under Review
+                {% if under_review > 0 %}<span class="badge bg-info ms-2">{{ under_review }}</span>{% endif %}
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link {% if status == 'resolved' %}active{% endif %}"
+               href="{{ url_for('admin_reports', status='resolved') }}">
+                Resolved
+                {% if resolved > 0 %}<span class="badge bg-success ms-2">{{ resolved }}</span>{% endif %}
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link {% if status == 'dismissed' %}active{% endif %}"
+               href="{{ url_for('admin_reports', status='dismissed') }}">
+                Dismissed
+                {% if dismissed > 0 %}<span class="badge bg-secondary ms-2">{{ dismissed }}</span>{% endif %}
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link {% if status == 'all' %}active{% endif %}"
+               href="{{ url_for('admin_reports', status='all') }}">
+                All
+            </a>
+        </li>
+    </ul>
+
+    {% if reports %}
+    <div class="row">
+        {% for report in reports %}
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">
+                                <span class="badge bg-{% if report.report_type == 'event' %}info{% else %}success{% endif %}">
+                                    {{ report.report_type|capitalize }}
+                                </span>
+                                {% if report.report_type == 'event' %}
+                                    {{ report.event.name }}
+                                {% else %}
+                                    {{ report.group.name }}
+                                {% endif %}
+                            </h6>
+                            <small class="text-muted">
+                                by {{ report.reporter.username }} • {{ report.created_at.strftime('%b %d, %Y %I:%M %p') }}
+                            </small>
+                        </div>
+                        <span class="badge bg-{% if report.status == 'pending' %}warning{% elif report.status == 'under_review' %}info{% elif report.status == 'resolved' %}success{% else %}secondary{% endif %}">
+                            {{ report.status|replace('_', ' ')|title }}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Reason:</strong>
+                        <p class="mb-0">{{ report.reason|replace('_', ' ')|title }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Description:</strong>
+                        <p class="small text-muted mb-0" style="white-space: pre-wrap;">{{ report.description }}</p>
+                    </div>
+                    <hr>
+                    <div class="small">
+                        <p class="mb-1"><strong>Reporter:</strong> {{ report.reporter.email }}</p>
+                        <p class="mb-1"><strong>IP Address:</strong> <code>{{ report.ip_address }}</code></p>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <div class="btn-group w-100" role="group">
+                        <form method="POST" action="{{ url_for('admin_update_report_status', report_id=report.id, new_status='under_review') }}" style="flex: 1;">
+                            <button type="submit" class="btn btn-sm btn-outline-info w-100" {% if report.status == 'under_review' %}disabled{% endif %}>
+                                <i class="bi bi-clock"></i> Under Review
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ url_for('admin_update_report_status', report_id=report.id, new_status='resolved') }}" style="flex: 1;">
+                            <button type="submit" class="btn btn-sm btn-outline-success w-100" {% if report.status == 'resolved' %}disabled{% endif %}>
+                                <i class="bi bi-check"></i> Resolved
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ url_for('admin_update_report_status', report_id=report.id, new_status='dismissed') }}" style="flex: 1;">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary w-100" {% if report.status == 'dismissed' %}disabled{% endif %}>
+                                <i class="bi bi-x"></i> Dismiss
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if pagination.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin_reports', status=status, page=pagination.prev_num) }}">Previous</a>
+            </li>
+            {% endif %}
+
+            {% for page_num in pagination.iter_pages() %}
+                {% if page_num %}
+                    {% if page_num == pagination.page %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_num }}</span>
+                    </li>
+                    {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin_reports', status=status, page=page_num) }}">{{ page_num }}</a>
+                    </li>
+                    {% endif %}
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if pagination.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin_reports', status=status, page=pagination.next_num) }}">Next</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="alert alert-info" role="alert">
+        <i class="bi bi-info-circle"></i>
+        No reports with status "{{ status }}"
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

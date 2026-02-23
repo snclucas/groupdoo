@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Groupdoo{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="mb-0">
+                <i class="bi bi-shield-lock"></i> Admin Dashboard
+            </h1>
+            <small class="text-muted">System Overview & Management</small>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-people text-primary" style="font-size: 2rem;"></i>
+                    <h6 class="card-title mt-2">Total Users</h6>
+                    <h3 class="mb-0">{{ total_users }}</h3>
+                    {% if admin_users > 0 %}
+                    <small class="text-muted">{{ admin_users }} admin(s)</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-grid-3x3-gap text-success" style="font-size: 2rem;"></i>
+                    <h6 class="card-title mt-2">Total Groups</h6>
+                    <h3 class="mb-0">{{ total_groups }}</h3>
+                    <small class="text-muted">{{ public_groups }} public, {{ private_groups }} private</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-calendar-event text-info" style="font-size: 2rem;"></i>
+                    <h6 class="card-title mt-2">Total Events</h6>
+                    <h3 class="mb-0">{{ total_events }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card text-center {% if pending_reports > 0 %}border-danger{% endif %}">
+                <div class="card-body">
+                    <i class="bi bi-flag text-danger" style="font-size: 2rem;"></i>
+                    <h6 class="card-title mt-2">Total Reports</h6>
+                    <h3 class="mb-0">{{ total_reports }}</h3>
+                    {% if pending_reports > 0 %}
+                    <small class="text-danger"><strong>{{ pending_reports }} pending</strong></small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Quick Links -->
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-link"></i> Quick Links</h6>
+                </div>
+                <div class="card-body">
+                    <div class="btn-group flex-wrap" role="group">
+                        <a href="{{ url_for('admin_users') }}" class="btn btn-outline-primary">
+                            <i class="bi bi-people"></i> Manage Users
+                        </a>
+                        <a href="{{ url_for('admin_groups') }}" class="btn btn-outline-success">
+                            <i class="bi bi-grid-3x3-gap"></i> Manage Groups
+                        </a>
+                        <a href="{{ url_for('admin_events') }}" class="btn btn-outline-info">
+                            <i class="bi bi-calendar-event"></i> Manage Events
+                        </a>
+                        <a href="{{ url_for('admin_reports', status='pending') }}" class="btn btn-outline-danger">
+                            <i class="bi bi-flag"></i> Review Reports
+                            {% if pending_reports > 0 %}
+                            <span class="badge bg-danger">{{ pending_reports }}</span>
+                            {% endif %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Reports -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="bi bi-flag"></i> Recent Reports</h6>
+                        <a href="{{ url_for('admin_reports') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_reports %}
+                    <div class="list-group list-group-flush">
+                        {% for report in recent_reports %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="mb-1">
+                                        <span class="badge bg-{% if report.report_type == 'event' %}info{% else %}success{% endif %}">
+                                            {{ report.report_type|capitalize }}
+                                        </span>
+                                        {% if report.report_type == 'event' %}
+                                            {{ report.event.name }}
+                                        {% else %}
+                                            {{ report.group.name }}
+                                        {% endif %}
+                                    </h6>
+                                    <small class="text-muted">{{ report.reason|replace('_', ' ')|title }} • {{ report.created_at.strftime('%b %d') }}</small>
+                                </div>
+                                <span class="badge bg-{% if report.status == 'pending' %}warning{% elif report.status == 'under_review' %}info{% elif report.status == 'resolved' %}success{% else %}secondary{% endif %}">
+                                    {{ report.status|replace('_', ' ')|title }}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="card-text text-muted p-3 mb-0">No reports yet</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Users -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="bi bi-people"></i> Recent Users</h6>
+                        <a href="{{ url_for('admin_users') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_users %}
+                    <div class="list-group list-group-flush">
+                        {% for user in recent_users %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">
+                                        {% if user.is_admin %}
+                                        <i class="bi bi-shield-fill text-warning"></i>
+                                        {% endif %}
+                                        {{ user.username }}
+                                    </h6>
+                                    <small class="text-muted">{{ user.email }}</small>
+                                </div>
+                                <small class="text-muted">{{ user.created_at.strftime('%b %d') }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="card-text text-muted p-3 mb-0">No users yet</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
