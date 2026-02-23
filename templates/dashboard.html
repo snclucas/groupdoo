@@ -112,7 +112,7 @@
                         <small class="form-text text-muted">Paste the full invite link or just the token.</small>
                     </div>
                     <button type="submit" class="btn btn-outline-primary">
-                        <i class="bi bi-box-arrow-in-right"></i> Join Group
+                        <i class="bi bi-box-arrow-in-right"></i> {{ _('Join Group') }}
                     </button>
                 </form>
             </div>
@@ -123,7 +123,7 @@
         <div class="card mb-4 border-info">
             <div class="card-header bg-info text-white">
                 <h5 class="mb-0">
-                    <i class="bi bi-calendar-event"></i> Upcoming Events ({{ upcoming_events|length }})
+                    <i class="bi bi-calendar-event"></i> {{ _('Upcoming Events') }} ({{ upcoming_events|length }})
                 </h5>
             </div>
             <div class="card-body">
@@ -160,7 +160,7 @@
                             </div>
                             <div class="col-12 col-md-4 text-start text-md-end mt-2 mt-md-0">
                                 <a href="{{ url_for('event_view', group_id=event.group_id, event_id=event.id) }}" class="btn btn-sm btn-outline-info w-100 w-md-auto">
-                                    <i class="bi bi-eye"></i> View Event
+                                    <i class="bi bi-eye"></i> {{ _('View event') }}
                                 </a>
                             </div>
                         </div>
@@ -174,7 +174,7 @@
         <!-- Owned Groups -->
         <div class="card mb-4">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="bi bi-star"></i> Your groups ({{ owned_groups|length }})</h5>
+                <h5 class="mb-0"><i class="bi bi-star"></i> {{ _('Your groups') }} ({{ owned_groups|length }})</h5>
             </div>
             <div class="card-body">
                 {% if owned_groups %}

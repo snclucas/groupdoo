@@ -1,0 +1,108 @@
+# Dutch translations for PROJECT.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-02-23 12:17+0100\n"
+"PO-Revision-Date: 2026-02-23 11:31+0100\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: nl\n"
+"Language-Team: nl <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: app.py:203
+msgid "Language changed successfully."
+msgstr "Taal succesvol gewijzigd."
+
+#: templates/base.html:58 templates/base.html:67 templates/base.html:111
+#: templates/index.html:14 templates/index.html:15
+msgid "Search"
+msgstr "Zoeken"
+
+#: templates/base.html:72
+msgid "Dashboard"
+msgstr "Dashboard"
+
+#: templates/base.html:77
+msgid "Groups"
+msgstr "Groepen"
+
+#: templates/base.html:82
+msgid "Invitations"
+msgstr "Uitnodigingen"
+
+#: templates/base.html:95
+msgid "Delete Account"
+msgstr "Account verwijderen"
+
+#: templates/base.html:101
+msgid "Logout"
+msgstr "Uitloggen"
+
+#: templates/base.html:116 templates/index.html:25
+msgid "Login"
+msgstr "Inloggen"
+
+#: templates/base.html:121 templates/index.html:26
+msgid "Register"
+msgstr "Registreren"
+
+#: templates/dashboard.html:115
+#, fuzzy
+msgid "Join Group"
+msgstr "Groepen"
+
+#: templates/dashboard.html:126
+msgid "Upcoming Events"
+msgstr ""
+
+#: templates/dashboard.html:163
+msgid "View event"
+msgstr ""
+
+#: templates/dashboard.html:177
+#, fuzzy
+msgid "Your groups"
+msgstr "Groepen"
+
+#: templates/index.html:3
+msgid "Home"
+msgstr "Home"
+
+#: templates/index.html:8
+msgid "Welcome to Groupdoo"
+msgstr "Welkom bij Groupdoo"
+
+#: templates/index.html:9
+msgid "A secure platform for managing your groups and activities."
+msgstr "Een veilig platform voor het beheren van uw groepen en activiteiten."
+
+#: templates/index.html:14
+msgid "Search public groups and events"
+msgstr "Zoek openbare groepen en evenementen"
+
+#: templates/index.html:21
+msgid "Go to Dashboard"
+msgstr "Ga naar Dashboard"
+
+#: templates/events/view.html:158
+#, fuzzy
+msgid "Going"
+msgstr "Inloggen"
+
+#: templates/events/view.html:163
+msgid "Interested"
+msgstr ""
+
+#: templates/events/view.html:168
+msgid "Not going"
+msgstr ""
+

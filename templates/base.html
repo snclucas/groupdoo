@@ -9,6 +9,9 @@
     <!-- Flatpickr CSS for date/time picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+    {% if csrf_token is defined %}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    {% endif %}
 </head>
 <body data-is-authenticated="{{ 'true' if current_user.is_authenticated else 'false' }}"
       data-banner-check-url="{{ url_for('gdpr_banner_check') }}"
@@ -52,7 +55,7 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <form class="d-flex ms-auto me-3" method="GET" action="{{ url_for('search') }}">
-                    <input class="form-control form-control-sm me-2" type="search" name="q" placeholder="Search" aria-label="Search">
+                    <input class="form-control form-control-sm me-2" type="search" name="q" placeholder="{{ _('Search') }}" aria-label="{{ _('Search') }}">
                     <button class="btn btn-sm btn-outline-light" type="submit">
                         <i class="bi bi-search"></i>
                     </button>
@@ -61,22 +64,22 @@
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('search') }}">
-                            <i class="bi bi-search"></i> Search
+                            <i class="bi bi-search"></i> {{ _('Search') }}
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('dashboard') }}">
-                            <i class="bi bi-speedometer2"></i> Dashboard
+                            <i class="bi bi-speedometer2"></i> {{ _('Dashboard') }}
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('groups_list') }}">
-                            <i class="bi bi-grid-3x3-gap"></i> Groups
+                            <i class="bi bi-grid-3x3-gap"></i> {{ _('Groups') }}
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('invitations_list') }}">
-                            <i class="bi bi-envelope"></i> Invitations
+                            <i class="bi bi-envelope"></i> {{ _('Invitations') }}
                             {% if pending_invitation_count > 0 %}
                             <span class="badge bg-danger badge-notification">{{ pending_invitation_count }}</span>
                             {% endif %}
@@ -89,13 +92,13 @@
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li>
                                 <a class="dropdown-item text-danger" href="{{ url_for('account_delete') }}">
-                                    <i class="bi bi-trash"></i> Delete Account
+                                    <i class="bi bi-trash"></i> {{ _('Delete Account') }}
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
                                 <a class="dropdown-item" href="{{ url_for('logout') }}">
-                                    <i class="bi bi-box-arrow-right"></i> Logout
+                                    <i class="bi bi-box-arrow-right"></i> {{ _('Logout') }}
                                 </a>
                             </li>
                         </ul>
@@ -105,17 +108,17 @@
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('search') }}">
-                            <i class="bi bi-search"></i> Search
+                            <i class="bi bi-search"></i> {{ _('Search') }}
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('login') }}">
-                            <i class="bi bi-box-arrow-in-right"></i> Login
+                            <i class="bi bi-box-arrow-in-right"></i> {{ _('Login') }}
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('register') }}">
-                            <i class="bi bi-person-plus"></i> Register
+                            <i class="bi bi-person-plus"></i> {{ _('Register') }}
                         </a>
                     </li>
                 </ul>
@@ -162,10 +165,26 @@
     <footer class="bg-light py-4 mt-auto border-top">
         <div class="container">
             <div class="row">
-                <div class="col-md-6 text-muted small">
+                <div class="col-md-4 text-muted small">
                     <small>&copy; 2026 Groupdoo. All rights reserved.</small>
                 </div>
-                <div class="col-md-6 text-md-end text-muted small">
+                <div class="col-md-4 text-center">
+                    <div class="dropup d-inline-block">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-globe"></i> {{ languages[current_language] }}
+                        </button>
+                        <ul class="dropdown-menu">
+                            {% for code, name in languages.items() %}
+                            <li>
+                                <a class="dropdown-item {% if code == current_language %}active{% endif %}" href="{{ url_for('set_language', language=code) }}">
+                                    {{ name }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-4 text-md-end text-muted small">
                     <a href="{{ url_for('gdpr_privacy') }}" class="text-muted text-decoration-none me-3">
                         <i class="bi bi-shield-lock"></i> Privacy
                     </a>

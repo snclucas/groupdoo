@@ -155,17 +155,17 @@
                 <div class="btn-group" role="group">
                     <form method="POST" action="{{ url_for('event_respond', group_id=group.id, event_id=event.id, status='going') }}" style="display: inline;">
                         <button type="submit" class="btn {% if user_response and user_response.status == 'going' %}btn-success{% else %}btn-outline-success{% endif %}">
-                            <i class="bi bi-check-circle"></i> Going
+                            <i class="bi bi-check-circle"></i> {{ _('Going') }}
                         </button>
                     </form>
                     <form method="POST" action="{{ url_for('event_respond', group_id=group.id, event_id=event.id, status='interested') }}" style="display: inline;">
                         <button type="submit" class="btn {% if user_response and user_response.status == 'interested' %}btn-warning{% else %}btn-outline-warning{% endif %}">
-                            <i class="bi bi-star"></i> Interested
+                            <i class="bi bi-star"></i> {{ _('Interested') }}
                         </button>
                     </form>
                     <form method="POST" action="{{ url_for('event_respond', group_id=group.id, event_id=event.id, status='not_going') }}" style="display: inline;">
                         <button type="submit" class="btn {% if user_response and user_response.status == 'not_going' %}btn-danger{% else %}btn-outline-danger{% endif %}">
-                            <i class="bi bi-x-circle"></i> Not Going
+                            <i class="bi bi-x-circle"></i> {{ _('Not going') }}
                         </button>
                     </form>
                 </div>

@@ -1,5 +1,8 @@
-from flask import Flask, render_template, redirect, url_for, flash, request
+import io
+
+from flask import Flask, render_template, redirect, url_for, flash, request, session, g
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_babel import Babel, gettext, lazy_gettext
 from config import Config
 from models import db, User, Group, GroupMember, GroupInvitation, Event, EventResponse, Tag, GroupTag, EventTag, GroupInviteToken
 from models import Notification, AuditLog, utcnow
@@ -12,6 +15,7 @@ import re
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import logging
+from flask import Response
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -21,6 +25,22 @@ db.init_app(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to access this page.'
+
+# Initialize Babel for internationalization
+babel = Babel(app)
+
+def get_locale():
+    """Determine the best match for supported languages"""
+    # 1. Try to get language from user session
+    if 'language' in session:
+        return session['language']
+    # 2. Try to get language from user preferences (if implemented in User model)
+    if current_user.is_authenticated and hasattr(current_user, 'language') and current_user.language:
+        return current_user.language
+    # 3. Try to match browser's accept_languages header
+    return request.accept_languages.best_match(app.config['LANGUAGES'].keys())
+
+babel.init_app(app, locale_selector=get_locale)
 
 limiter = Limiter(
     get_remote_address,
@@ -162,13 +182,26 @@ def inject_invitation_count():
         return {
             'pending_invitation_count': current_user.get_pending_invitation_count(),
             'currency_symbol': app.config['CURRENCY_SYMBOL'],
-            'currency_code': app.config['CURRENCY_CODE']
+            'currency_code': app.config['CURRENCY_CODE'],
+            'languages': app.config['LANGUAGES'],
+            'current_language': session.get('language', app.config['BABEL_DEFAULT_LOCALE'])
         }
     return {
         'pending_invitation_count': 0,
         'currency_symbol': app.config['CURRENCY_SYMBOL'],
-        'currency_code': app.config['CURRENCY_CODE']
+        'currency_code': app.config['CURRENCY_CODE'],
+        'languages': app.config['LANGUAGES'],
+        'current_language': session.get('language', app.config['BABEL_DEFAULT_LOCALE'])
     }
+
+
+@app.route('/set_language/<language>')
+def set_language(language):
+    """Set the user's language preference"""
+    if language in app.config['LANGUAGES']:
+        session['language'] = language
+        flash(gettext('Language changed successfully.'), 'success')
+    return redirect(request.referrer or url_for('index'))
 
 
 @app.route('/')
@@ -1686,6 +1719,50 @@ def event_duplicate(group_id, event_id):
     return render_template('events/create.html', form=form, group=group)
 
 
+@app.route('/robots.txt')
+def robots_txt():
+    """Serve robots.txt for crawlers"""
+    content = "\n".join([
+        "User-agent: *",
+        "Allow: /",
+        "Sitemap: " + url_for('sitemap_xml', _external=True)
+    ])
+    return Response(content, mimetype='text/plain')
+
+
+@app.route('/sitemap.xml')
+def sitemap_xml():
+    """Generate a simple sitemap for public pages"""
+    base_url = app.config.get('SITE_URL') or request.url_root.rstrip('/')
+
+    urls = [
+        url_for('index', _external=True),
+        url_for('search', _external=True),
+        url_for('gdpr_privacy', _external=True)
+    ]
+
+    public_groups = Group.query.filter_by(is_public=True).all()
+    for group in public_groups:
+        urls.append(url_for('group_view', group_id=group.id, _external=True))
+        for event in group.events.all():
+            urls.append(url_for('event_view', group_id=group.id, event_id=event.id, _external=True))
+
+    xml_items = []
+    for link in sorted(set(urls)):
+        xml_items.append(
+            f"<url><loc>{link}</loc></url>"
+        )
+
+    xml_body = "\n".join(xml_items)
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{body}
+</urlset>
+""".format(body=xml_body)
+
+    return Response(xml, mimetype='application/xml')
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host=app.config['HOST'], port=app.config['PORT'], debug=app.config['DEBUG'])
 

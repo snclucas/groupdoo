@@ -5,6 +5,23 @@ class Config:
     """Application configuration"""
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
 
+    # Flask server configuration
+    HOST = os.environ.get('FLASK_HOST', '127.0.0.1')
+    PORT = int(os.environ.get('FLASK_PORT', '5000'))
+    DEBUG = os.environ.get('FLASK_DEBUG', 'true').lower() == 'true'
+
+    # Internationalization configuration
+    BABEL_DEFAULT_LOCALE = os.environ.get('BABEL_DEFAULT_LOCALE', 'en')
+    BABEL_TRANSLATION_DIRECTORIES = 'translations'
+    LANGUAGES = {
+        'en': 'English',
+        'fr': 'Français',
+        'es': 'Español',
+        'de': 'Deutsch',
+        'nl': 'Nederlands',
+        'it': 'Italiano'
+    }
+
     # Database configuration for MariaDB
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
         'mysql+pymysql://root:password@localhost:3306/groupdoo_db'

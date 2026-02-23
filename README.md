@@ -28,6 +28,7 @@ A Flask web application with user authentication and group management using SQLA
 - Intuitive dashboard with group sections
 - Flash messages for user feedback
 - MariaDB database backend
+- **Internationalization**: Support for 6 languages (English, French, Spanish, German, Dutch, Italian)
 
 ## Prerequisites
 
@@ -163,8 +164,32 @@ Rate limiting is enabled using `Flask-Limiter` with default limits and tighter l
 
 ## Environment Variables
 
+### Flask Server Configuration
+- `FLASK_HOST`: Host address to bind to (default: `127.0.0.1`)
+- `FLASK_PORT`: Port to listen on (default: `5000`)
+- `FLASK_DEBUG`: Enable debug mode (default: `true`)
+
+### Internationalization
+- `BABEL_DEFAULT_LOCALE`: Default language (default: `en`)
+  - Available: `en` (English), `fr` (French), `es` (Spanish), `de` (German), `nl` (Dutch), `it` (Italian)
+
+### Security and Database
 - `SECRET_KEY`: Flask secret key for sessions (set in production!)
 - `DATABASE_URL`: Database connection string
+
+## Internationalization (i18n)
+
+Groupdoo supports **6 languages**:
+- 🇬🇧 English (en) - Default
+- 🇫🇷 French (fr)
+- 🇪🇸 Spanish (es)
+- 🇩🇪 German (de)
+- 🇳🇱 Dutch (nl)
+- 🇮🇹 Italian (it)
+
+Users can switch languages using the globe icon (🌐) in the navigation bar. The language preference is stored in their session.
+
+For developers working with translations, see the detailed [I18N_README.md](I18N_README.md) guide.
 
 ## Development
 
