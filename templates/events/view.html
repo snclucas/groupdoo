@@ -43,6 +43,11 @@
                 {% endif %}
             </div>
             <div class="card-body">
+                <div class="d-flex justify-content-end mb-3">
+                    <a href="{{ url_for('event_calendar_download', group_id=group.id, event_id=event.id) }}" class="btn btn-sm btn-outline-success">
+                        <i class="bi bi-calendar-plus"></i> Add to calendar
+                    </a>
+                </div>
                 {% set response_count = going_users|length + interested_users|length + not_going_users|length %}
                 {% if response_count > 0 and (event.created_by_id == current_user.id or group.is_owner(current_user)) %}
                 <div class="alert alert-warning mb-4">

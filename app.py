@@ -29,16 +29,16 @@ login_manager.login_message = 'Please log in to access this page.'
 # Initialize Babel for internationalization
 babel = Babel(app)
 
+
 def get_locale():
     """Determine the best match for supported languages"""
-    # 1. Try to get language from user session
-    if 'language' in session:
-        return session['language']
-    # 2. Try to get language from user preferences (if implemented in User model)
-    if current_user.is_authenticated and hasattr(current_user, 'language') and current_user.language:
+    supported = set(app.config['LANGUAGES'].keys())
+    if current_user.is_authenticated and getattr(current_user, 'language', None) in supported:
         return current_user.language
-    # 3. Try to match browser's accept_languages header
-    return request.accept_languages.best_match(app.config['LANGUAGES'].keys())
+    if session.get('language') in supported:
+        return session['language']
+    return request.accept_languages.best_match(supported)
+
 
 babel.init_app(app, locale_selector=get_locale)
 
@@ -168,6 +168,60 @@ def build_event_change_message(event_name, changes):
     return f'Event "{event_name}" updated: ' + '; '.join(changes) + '. Please check if you can still attend.'
 
 
+def _escape_ics_text(value):
+    """Escape text for iCalendar fields"""
+    if value is None:
+        return ''
+    return (str(value)
+            .replace('\\', '\\\\')
+            .replace(';', '\\;')
+            .replace(',', '\\,')
+            .replace('\r\n', '\\n')
+            .replace('\n', '\\n'))
+
+
+def _format_ics_datetime(value):
+    """Format datetime for iCalendar (floating time)"""
+    return value.strftime('%Y%m%dT%H%M%S')
+
+
+def build_event_ics(event, event_url):
+    """Build an iCalendar payload for an event"""
+    dt_start = _format_ics_datetime(event.event_date)
+    dt_end = _format_ics_datetime(event.event_date + timedelta(hours=1))
+    dt_stamp = _format_ics_datetime(datetime.utcnow())
+    description_parts = []
+    if event.description:
+        description_parts.append(event.description)
+    description_parts.append(f'Location: {event.location_name}, {event.address}')
+    description_parts.append(f'Event page: {event_url}')
+    if event.url:
+        description_parts.append(f'Event link: {event.url}')
+    description = _escape_ics_text('\n'.join(description_parts))
+    location = _escape_ics_text(f'{event.location_name}, {event.address}')
+    summary = _escape_ics_text(event.name)
+    uid = _escape_ics_text(f'groupdoo-event-{event.id}@{request.host}')
+
+    lines = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Groupdoo//EN',
+        'CALSCALE:GREGORIAN',
+        'BEGIN:VEVENT',
+        f'UID:{uid}',
+        f'DTSTAMP:{dt_stamp}',
+        f'DTSTART:{dt_start}',
+        f'DTEND:{dt_end}',
+        f'SUMMARY:{summary}',
+        f'DESCRIPTION:{description}',
+        f'LOCATION:{location}',
+        f'URL:{_escape_ics_text(event_url)}',
+        'END:VEVENT',
+        'END:VCALENDAR'
+    ]
+    return '\r\n'.join(lines) + '\r\n'
+
+
 @login_manager.user_loader
 def load_user(user_id):
     """Load user by ID for Flask-Login"""
@@ -179,12 +233,15 @@ def load_user(user_id):
 def inject_invitation_count():
     """Inject pending invitation count into all templates"""
     if current_user.is_authenticated:
+        preferred_language = current_user.language or session.get('language') or app.config['BABEL_DEFAULT_LOCALE']
+        if preferred_language not in app.config['LANGUAGES']:
+            preferred_language = app.config['BABEL_DEFAULT_LOCALE']
         return {
             'pending_invitation_count': current_user.get_pending_invitation_count(),
             'currency_symbol': app.config['CURRENCY_SYMBOL'],
             'currency_code': app.config['CURRENCY_CODE'],
             'languages': app.config['LANGUAGES'],
-            'current_language': session.get('language', app.config['BABEL_DEFAULT_LOCALE'])
+            'current_language': preferred_language
         }
     return {
         'pending_invitation_count': 0,
@@ -200,6 +257,9 @@ def set_language(language):
     """Set the user's language preference"""
     if language in app.config['LANGUAGES']:
         session['language'] = language
+        if current_user.is_authenticated:
+            current_user.language = language
+            db.session.commit()
         flash(gettext('Language changed successfully.'), 'success')
     return redirect(request.referrer or url_for('index'))
 
@@ -245,6 +305,7 @@ def login():
         db.session.commit()
 
         login_user(user, remember=form.remember_me.data)
+        session['language'] = user.language or session.get('language') or app.config['BABEL_DEFAULT_LOCALE']
         flash(f'Welcome back, {user.username}!', 'success')
 
         # Redirect to next page if it exists, otherwise to dashboard
@@ -1014,6 +1075,33 @@ def event_view(group_id, event_id):
                          current_time=datetime.utcnow())
 
 
+@app.route('/groups/<int:group_id>/events/<int:event_id>/calendar')
+def event_calendar_download(group_id, event_id):
+    """Download event as an iCalendar (.ics) file"""
+    group = Group.query.get_or_404(group_id)
+    event = Event.query.get_or_404(event_id)
+
+    if event.group_id != group.id:
+        flash('Event not found in this group.', 'danger')
+        return redirect(url_for('events_list', group_id=group.id))
+
+    if not group.is_public:
+        if not current_user.is_authenticated:
+            flash('Please log in to view this private group event.', 'warning')
+            return redirect(url_for('login', next=request.path))
+        if not group.can_view(current_user):
+            flash('You do not have permission to view this group.', 'danger')
+            return redirect(url_for('groups_list'))
+
+    event_url = url_for('event_view', group_id=group.id, event_id=event.id, _external=True)
+    ics_body = build_event_ics(event, event_url)
+    filename = f'groupdoo_event_{event.id}.ics'
+
+    response = Response(ics_body, mimetype='text/calendar; charset=utf-8')
+    response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
 @app.route('/groups/<int:group_id>/events/<int:event_id>/edit', methods=['GET', 'POST'])
 @login_required
 def event_edit(group_id, event_id):
@@ -1765,4 +1853,3 @@ def sitemap_xml():
 
 if __name__ == '__main__':
     app.run(host=app.config['HOST'], port=app.config['PORT'], debug=app.config['DEBUG'])
-
