@@ -1,0 +1,249 @@
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1;
+}
+
+.navbar-brand {
+  font-weight: bold;
+}
+
+.badge-notification {
+  position: relative;
+  top: -2px;
+}
+
+/* Mobile-first responsiveness */
+@media (max-width: 576px) {
+  .container {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .navbar-brand {
+    font-size: 1rem;
+  }
+  .navbar .btn,
+  .navbar .form-control {
+    font-size: 0.875rem;
+  }
+  .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .btn-group .btn {
+    flex: 1 1 auto;
+    white-space: nowrap;
+  }
+  .card {
+    border-radius: 12px;
+  }
+  .card-body {
+    padding: 1rem;
+  }
+  .table {
+    font-size: 0.875rem;
+  }
+  .table td,
+  .table th {
+    white-space: nowrap;
+  }
+  .toast {
+    min-width: 260px;
+  }
+  footer .text-md-end {
+    text-align: left !important;
+    margin-top: 0.5rem;
+  }
+  footer a {
+    display: inline-block;
+    margin-bottom: 0.25rem;
+  }
+  .gdpr-consent-banner {
+    padding: 0.75rem;
+    text-align: left;
+  }
+  .gdpr-consent-banner .btn {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+  .gdpr-consent-banner .btn + .btn,
+  .gdpr-consent-banner .btn + a,
+  .gdpr-consent-banner a + .btn {
+    margin-left: 0 !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .btn-group {
+    gap: 6px;
+  }
+  .navbar .dropdown-menu {
+    width: 100%;
+  }
+}
+
+/* Toast Styling */
+.toast {
+  min-width: 320px;
+  animation: slideIn 0.3s ease-in-out;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: none;
+  border-left: 4px solid;
+}
+
+.toast:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.toast:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.toast:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.toast.bg-success {
+  border-left-color: #198754;
+}
+
+.toast.bg-danger {
+  border-left-color: #dc3545;
+}
+
+.toast.bg-warning {
+  border-left-color: #ffc107;
+}
+
+.toast.bg-info {
+  border-left-color: #0dcaf0;
+}
+
+/* Success Toast */
+.toast:has(.text-success) {
+  background-color: #f0fdf4;
+  border-left-color: #198754;
+}
+
+.toast:has(.text-success) .toast-body {
+  color: #065f46;
+}
+
+.toast:has(.text-success) .toast-header {
+  background-color: #f0fdf4;
+  border-bottom: 1px solid #bbf7d0;
+}
+
+/* Danger Toast */
+.toast:has(.text-danger) {
+  background-color: #fef2f2;
+  border-left-color: #dc3545;
+}
+
+.toast:has(.text-danger) .toast-body {
+  color: #7f1d1d;
+}
+
+.toast:has(.text-danger) .toast-header {
+  background-color: #fef2f2;
+  border-bottom: 1px solid #fecaca;
+}
+
+/* Warning Toast */
+.toast:has(.text-warning) {
+  background-color: #fffbeb;
+  border-left-color: #ffc107;
+}
+
+.toast:has(.text-warning) .toast-body {
+  color: #92400e;
+}
+
+.toast:has(.text-warning) .toast-header {
+  background-color: #fffbeb;
+  border-bottom: 1px solid #fde68a;
+}
+
+/* Info Toast */
+.toast:has(.text-info) {
+  background-color: #f0f9ff;
+  border-left-color: #0dcaf0;
+}
+
+.toast:has(.text-info) .toast-body {
+  color: #0c2d48;
+}
+
+.toast:has(.text-info) .toast-header {
+  background-color: #f0f9ff;
+  border-bottom: 1px solid #bae6fd;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  to {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+}
+
+.toast.hide {
+  animation: slideOut 0.3s ease-in-out forwards;
+}
+
+/* GDPR Consent Banner */
+.gdpr-consent-banner {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1rem;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 999;
+  display: none;
+}
+
+.gdpr-consent-banner.show {
+  display: block;
+  animation: slideUp 0.3s ease-in-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.gdpr-consent-banner a {
+  color: white;
+}
+
+.gdpr-consent-banner .btn-outline-light {
+  color: white;
+  border-color: white;
+}
+
+.gdpr-consent-banner .btn-outline-light:hover {
+  background-color: white;
+  color: #667eea;
+}
+
