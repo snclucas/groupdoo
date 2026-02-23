@@ -6,10 +6,10 @@ from flask_babel import Babel, gettext, lazy_gettext
 from config import Config
 from email_service import EmailClient, EmailSendError, build_email_config
 from models import db, User, Group, GroupMember, GroupInvitation, Event, EventResponse, Tag, GroupTag, EventTag, GroupInviteToken
-from models import Notification, AuditLog, utcnow
+from models import Notification, AuditLog, Report, utcnow
 from forms import LoginForm, RegistrationForm, GroupForm, InviteUserForm, EventForm, AccountDeleteForm
 from forms import PasswordResetRequestForm, PasswordResetForm
-from forms import ProfileUpdateForm, PasswordChangeForm
+from forms import ProfileUpdateForm, PasswordChangeForm, ReportForm
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_
 from datetime import datetime, timedelta, timezone
@@ -1509,6 +1509,133 @@ def event_respond(group_id, event_id, status):
     }
     flash(f'You are now marked as {status_text[status]} for this event.', 'success')
     return redirect(url_for('event_view', group_id=group.id, event_id=event.id))
+
+
+# Reporting Routes
+
+@app.route('/events/<int:event_id>/report', methods=['GET', 'POST'])
+@login_required
+@limiter.limit("10 per hour")
+def report_event(event_id):
+    """Report an event for moderation"""
+    event = Event.query.get_or_404(event_id)
+
+    form = ReportForm()
+    if form.validate_on_submit():
+        # Check if user has already reported this event
+        existing = Report.query.filter_by(
+            event_id=event.id,
+            reporter_id=current_user.id
+        ).first()
+
+        if existing:
+            flash('You have already reported this event.', 'warning')
+            return redirect(url_for('event_view', group_id=event.group_id, event_id=event.id))
+
+        report = Report(
+            report_type='event',
+            event_id=event.id,
+            reporter_id=current_user.id,
+            reason=form.reason.data,
+            description=form.description.data,
+            ip_address=request.remote_addr
+        )
+        db.session.add(report)
+        db.session.commit()
+
+        log_audit('event_reported', f'User reported event {event.id} for {form.reason.data}', user_id=current_user.id)
+
+        # Send email to admin
+        try:
+            reason_display = dict(ReportForm().reason.choices).get(form.reason.data, form.reason.data)
+            context = {
+                'report_type': 'event',
+                'reporter_username': current_user.username,
+                'reporter_email': current_user.email,
+                'item_name': event.name,
+                'group_name': event.group.name,
+                'reason_display': reason_display,
+                'description': form.description.data,
+                'created_at': report.created_at,
+                'ip_address': request.remote_addr,
+                'item_url': url_for('event_view', group_id=event.group_id, event_id=event.id, _external=True),
+                'review_url': url_for('index', _external=True)  # TODO: Link to moderation dashboard
+            }
+            send_templated_email(
+                app.config['ADMIN_EMAIL'],
+                'New Event Report Submitted',
+                'report_notification',
+                context
+            )
+        except EmailSendError:
+            pass  # Don't block user if email fails
+
+        flash('Thank you for your report. Our moderation team will review it shortly.', 'success')
+        return redirect(url_for('event_view', group_id=event.group_id, event_id=event.id))
+
+    return render_template('reports/report_event.html', form=form, event=event)
+
+
+@app.route('/groups/<int:group_id>/report', methods=['GET', 'POST'])
+@login_required
+@limiter.limit("10 per hour")
+def report_group(group_id):
+    """Report a group for moderation"""
+    group = Group.query.get_or_404(group_id)
+
+    form = ReportForm()
+    if form.validate_on_submit():
+        # Check if user has already reported this group
+        existing = Report.query.filter_by(
+            group_id=group.id,
+            reporter_id=current_user.id
+        ).first()
+
+        if existing:
+            flash('You have already reported this group.', 'warning')
+            return redirect(url_for('group_view', group_id=group.id))
+
+        report = Report(
+            report_type='group',
+            group_id=group.id,
+            reporter_id=current_user.id,
+            reason=form.reason.data,
+            description=form.description.data,
+            ip_address=request.remote_addr
+        )
+        db.session.add(report)
+        db.session.commit()
+
+        log_audit('group_reported', f'User reported group {group.id} for {form.reason.data}', user_id=current_user.id)
+
+        # Send email to admin
+        try:
+            reason_display = dict(ReportForm().reason.choices).get(form.reason.data, form.reason.data)
+            context = {
+                'report_type': 'group',
+                'reporter_username': current_user.username,
+                'reporter_email': current_user.email,
+                'item_name': group.name,
+                'reason_display': reason_display,
+                'description': form.description.data,
+                'created_at': report.created_at,
+                'ip_address': request.remote_addr,
+                'item_url': url_for('group_view', group_id=group.id, _external=True),
+                'review_url': url_for('index', _external=True)  # TODO: Link to moderation dashboard
+            }
+            send_templated_email(
+                app.config['ADMIN_EMAIL'],
+                'New Group Report Submitted',
+                'report_notification',
+                context
+            )
+        except EmailSendError:
+            pass  # Don't block user if email fails
+
+        flash('Thank you for your report. Our moderation team will review it shortly.', 'success')
+        return redirect(url_for('group_view', group_id=group.id))
+
+    return render_template('reports/report_group.html', form=form, group=group)
 
 
 @app.cli.command()

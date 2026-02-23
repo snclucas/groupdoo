@@ -164,6 +164,11 @@
             <a href="{{ url_for('events_list', group_id=group.id) }}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> Back to Events
             </a>
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('report_event', event_id=event.id) }}" class="btn btn-outline-danger">
+                <i class="bi bi-flag"></i> {{ _('Report') }}
+            </a>
+            {% endif %}
         </div>
     </div>
 

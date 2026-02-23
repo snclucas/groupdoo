@@ -28,6 +28,7 @@ class Config:
     # Email configuration
     EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'console')  # console | smtp
     EMAIL_FROM = os.environ.get('EMAIL_FROM', 'noreply@groupdoo.local')
+    ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@groupdoo.local')
     EMAIL_SUBJECT_PREFIX = os.environ.get('EMAIL_SUBJECT_PREFIX', '[Groupdoo] ')
     EMAIL_DEBUG_TO = os.environ.get('EMAIL_DEBUG_TO', '')
     EMAIL_FAIL_SILENTLY = os.environ.get('EMAIL_FAIL_SILENTLY', 'false').lower() == 'true'

@@ -202,3 +202,19 @@ class AccountDeleteForm(FlaskForm):
         Length(min=3, max=80)
     ])
     submit = SubmitField('Delete Account')
+
+
+class ReportForm(FlaskForm):
+    """Form for reporting events and groups"""
+    reason = SelectField('Reason', validators=[DataRequired()], choices=[
+        ('spam', 'Spam'),
+        ('offensive', 'Offensive Content'),
+        ('inappropriate', 'Inappropriate Content'),
+        ('misleading', 'Misleading Information'),
+        ('other', 'Other')
+    ])
+    description = TextAreaField('Details', validators=[
+        DataRequired(),
+        Length(min=10, max=1000, message='Description must be between 10 and 1000 characters')
+    ])
+    submit = SubmitField('Submit Report')

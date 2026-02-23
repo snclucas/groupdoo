@@ -20,6 +20,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     language = db.Column(db.String(10), nullable=True, default='en')
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)
     email_verified = db.Column(db.Boolean, default=False, nullable=False)
     email_verify_token = db.Column(db.String(64), nullable=True, index=True)
     email_verify_expires_at = db.Column(db.DateTime(timezone=True), nullable=True)
@@ -423,3 +424,33 @@ class GDPRDeletionRequest(db.Model):
 
     def __repr__(self):
         return f'<GDPRDeletionRequest user_id={self.user_id} status={self.status}>'
+
+
+class Report(db.Model):
+    """User reports for events and groups"""
+    __tablename__ = 'reports'
+
+    id = db.Column(db.Integer, primary_key=True)
+    report_type = db.Column(db.String(20), nullable=False)  # 'event' or 'group'
+    event_id = db.Column(db.Integer, db.ForeignKey('events.id'), nullable=True)
+    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'), nullable=True)
+    reporter_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    reason = db.Column(db.String(50), nullable=False)  # 'spam', 'offensive', 'inappropriate', 'misleading', 'other'
+    description = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='pending')  # 'pending', 'under_review', 'resolved', 'dismissed'
+    moderator_note = db.Column(db.Text, nullable=True)
+    moderator_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    action_taken = db.Column(db.String(50), nullable=True)  # 'removed', 'suspended', 'warning_sent', 'no_action'
+    created_at = db.Column(db.DateTime(timezone=True), default=utcnow)
+    reviewed_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    resolved_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    ip_address = db.Column(db.String(64), nullable=True)
+
+    # Relationships
+    event = db.relationship('Event', backref='reports')
+    group = db.relationship('Group', backref='reports')
+    reporter = db.relationship('User', backref='submitted_reports', foreign_keys=[reporter_id])
+    moderator = db.relationship('User', backref='moderated_reports', foreign_keys=[moderator_id])
+
+    def __repr__(self):
+        return f'<Report report_type={self.report_type} status={self.status} id={self.id}>'

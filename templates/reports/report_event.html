@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Report Event') }} - Groupdoo{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-body">
+                <h3 class="card-title mb-4">
+                    <i class="bi bi-flag"></i> {{ _('Report Event') }}
+                </h3>
+
+                <div class="alert alert-info mb-4">
+                    <i class="bi bi-info-circle"></i>
+                    {{ _('Event:') }} <strong>{{ event.name }}</strong>
+                </div>
+
+                <p class="text-muted mb-4">
+                    {{ _('Help us maintain a safe and respectful community by reporting content that violates our guidelines.') }}
+                </p>
+
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        {{ form.reason.label(class="form-label") }}
+                        {{ form.reason(class="form-select" + (" is-invalid" if form.reason.errors else "")) }}
+                        {% if form.reason.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.reason.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""), rows="5", placeholder=_("Please provide detailed information about why you're reporting this event...")) }}
+                        {% if form.description.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.description.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">
+                            {{ form.description.label.text }}: 10-1000 characters
+                        </small>
+                    </div>
+
+                    <div class="alert alert-secondary">
+                        <i class="bi bi-shield-check"></i>
+                        {{ _('Your report is confidential. Only our moderation team will see your report and reason.') }}
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        {{ form.submit(class="btn btn-primary") }}
+                        <a href="{{ url_for('event_view', group_id=event.group_id, event_id=event.id) }}" class="btn btn-outline-secondary">
+                            {{ _('Cancel') }}
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

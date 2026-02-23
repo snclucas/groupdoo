@@ -1,0 +1,24 @@
+New {{ report_type|capitalize }} Report Submitted
+
+A new {{ report_type }} has been reported and requires moderation review.
+
+Report Details:
+- Reported By: {{ reporter_username }}
+- Reporter Email: {{ reporter_email }}
+- {{ report_type|capitalize }} Name: {{ item_name }}
+- {% if report_type == 'event' %}Group: {{ group_name }}{% endif %}
+- Reason: {{ reason_display }}
+- Submitted: {{ created_at.strftime('%B %d, %Y at %I:%M %p') }}
+
+Description:
+{{ description }}
+
+Moderator Actions:
+- Review Report: {{ review_url }}
+- View {{ report_type|capitalize }}: {{ item_url }}
+
+Reporter IP Address: {{ ip_address }}
+
+---
+This is an automated notification. Do not reply to this email.
+
