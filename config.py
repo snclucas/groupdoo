@@ -43,8 +43,16 @@ class Config:
     EMAIL_SMTP_TIMEOUT = int(os.environ.get('EMAIL_SMTP_TIMEOUT', '10'))
 
     # Database configuration for MariaDB
+    # Build from individual components if provided, otherwise use direct URL
+    _db_driver = os.environ.get('DB_DRIVER', 'mysql+pymysql')
+    _db_user = os.environ.get('DB_USER', 'root')
+    _db_password = os.environ.get('DB_PASSWORD', 'password')
+    _db_host = os.environ.get('DB_HOST', 'localhost')
+    _db_port = os.environ.get('DB_PORT', '3306')
+    _db_name = os.environ.get('DB_NAME', 'groupdoo_db')
+
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        'mysql+pymysql://root:password@localhost:3306/groupdoo_db'
+        f'{_db_driver}://{_db_user}:{_db_password}@{_db_host}:{_db_port}/{_db_name}'
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False
