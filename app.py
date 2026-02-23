@@ -260,7 +260,7 @@ def ensure_email_verification(user: User) -> None:
     """Issue a fresh email verification token if needed."""
     if user.email_verified:
         return
-    if not user.email_verify_token or not user.email_verify_expires_at or user.email_verify_expires_at < now_utc():
+    if not user.email_verify_token or not user.email_verify_expires_at or to_utc(user.email_verify_expires_at) < now_utc():
         user.email_verify_token = generate_token()
         user.email_verify_expires_at = now_utc() + timedelta(hours=app.config['EMAIL_VERIFY_TOKEN_HOURS'])
         db.session.commit()
@@ -343,7 +343,7 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
-        if user and user.locked_until and user.locked_until > now_utc():
+        if user and user.locked_until and to_utc(user.locked_until) > now_utc():
             flash('Account is temporarily locked due to failed login attempts. Try again later.', 'danger')
             log_audit('login_locked', f'Locked login attempt for {user.username}', user_id=user.id)
             db.session.commit()
@@ -421,7 +421,7 @@ def register():
 def verify_email(token):
     """Verify a user's email address"""
     user = User.query.filter_by(email_verify_token=token).first()
-    if not user or not user.email_verify_expires_at or user.email_verify_expires_at < now_utc():
+    if not user or not user.email_verify_expires_at or to_utc(user.email_verify_expires_at) < now_utc():
         flash('This verification link is invalid or has expired.', 'danger')
         return redirect(url_for('login'))
 
@@ -455,7 +455,7 @@ def resend_verification():
 
     try:
         send_verification_email(user)
-    except EmailSendError:
+    except EmailSendError as e:
         pass
 
     session['pending_verify_email'] = user.email
@@ -493,7 +493,7 @@ def password_reset_confirm(token):
     """Confirm a password reset"""
     form = PasswordResetForm()
     user = User.query.filter_by(password_reset_token=token).first()
-    if not user or not user.password_reset_expires_at or user.password_reset_expires_at < now_utc():
+    if not user or not user.password_reset_expires_at or to_utc(user.password_reset_expires_at) < now_utc():
         flash('This password reset link is invalid or has expired.', 'danger')
         return redirect(url_for('password_reset_request'))
 
@@ -1810,7 +1810,7 @@ def gdpr_export_download(token):
     export = GDPRDataExport.query.filter_by(download_token=token, user_id=current_user.id).first_or_404()
 
     # Check if token has expired
-    if export.download_token_expires_at < now_utc():
+    if to_utc(export.download_token_expires_at) < now_utc():
         flash('Download link has expired. Please request a new export.', 'danger')
         return redirect(url_for('gdpr_export'))
 
@@ -1961,7 +1961,7 @@ def gdpr_delete_confirm(token):
     deletion_request = GDPRDeletionRequest.query.filter_by(confirmation_token=token).first_or_404()
 
     # Check if token expired
-    if deletion_request.confirmation_token_expires_at < now_utc():
+    if to_utc(deletion_request.confirmation_token_expires_at) < now_utc():
         deletion_request.status = 'cancelled'
         db.session.commit()
         flash('Confirmation link has expired. Please submit a new deletion request.', 'danger')

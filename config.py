@@ -1,5 +1,8 @@
 import os
 
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class Config:
     """Application configuration"""
@@ -31,7 +34,7 @@ class Config:
     EMAIL_VERIFY_TOKEN_HOURS = int(os.environ.get('EMAIL_VERIFY_TOKEN_HOURS', '24'))
     EMAIL_PASSWORD_RESET_HOURS = int(os.environ.get('EMAIL_PASSWORD_RESET_HOURS', '2'))
 
-    EMAIL_SMTP_HOST = os.environ.get('EMAIL_SMTP_HOST', 'localhost')
+    EMAIL_SMTP_HOST = os.environ.get('EMAIL_SMTP_HOST', 'smtp-relay.brevo.com')
     EMAIL_SMTP_PORT = int(os.environ.get('EMAIL_SMTP_PORT', '587'))
     EMAIL_SMTP_USERNAME = os.environ.get('EMAIL_SMTP_USERNAME')
     EMAIL_SMTP_PASSWORD = os.environ.get('EMAIL_SMTP_PASSWORD')
