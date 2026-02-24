@@ -397,6 +397,27 @@ def register():
         return redirect(url_for('dashboard'))
 
     form = RegistrationForm()
+
+    # Generate CAPTCHA for both GET and POST (refresh on error)
+    if request.method == 'GET' or form.errors:
+        import random
+        num1 = random.randint(1, 10)
+        num2 = random.randint(1, 10)
+        operation = random.choice(['+', '-'])
+
+        if operation == '+':
+            answer = num1 + num2
+            captcha_text = f"{num1} + {num2}"
+        else:
+            # Ensure positive result
+            if num1 < num2:
+                num1, num2 = num2, num1
+            answer = num1 - num2
+            captcha_text = f"{num1} - {num2}"
+
+        session['captcha_text'] = captcha_text
+        session['captcha_answer'] = answer
+
     if form.validate_on_submit():
         user = User(username=form.username.data, email=form.email.data)
         user.set_password(form.password.data)
@@ -414,7 +435,8 @@ def register():
         flash('Registration successful. Please check your email to verify your account.', 'success')
         return redirect(url_for('login'))
 
-    return render_template('register.html', form=form)
+    captcha_text = session.get('captcha_text', '? + ?')
+    return render_template('register.html', form=form, captcha_text=captcha_text)
 
 
 @app.route('/verify-email/<token>')
@@ -2139,47 +2161,126 @@ def admin_toggle_user_admin(user_id):
     return redirect(url_for('admin_users'))
 
 
-@app.route('/admin')
+@app.route('/admin/user/<int:user_id>/block', methods=['POST'])
 @login_required
-def admin_dashboard():
-    """Admin dashboard - overview of system statistics"""
+def admin_block_user(user_id):
+    """Block a user from using the platform"""
     if not current_user.is_admin:
         flash('Admin access required.', 'danger')
         return redirect(url_for('dashboard'))
+    
+    user = User.query.get_or_404(user_id)
+    
+    # Prevent admin from blocking themselves
+    if user.id == current_user.id:
+        flash('You cannot block your own account.', 'warning')
+        return redirect(url_for('admin_users'))
+    
+    if user.is_blocked:
+        flash(f'User {user.username} is already blocked.', 'info')
+        return redirect(url_for('admin_users'))
+    
+    user.is_blocked = True
+    db.session.commit()
+    
+    log_audit('user_blocked',
+              f'User {user.username} was blocked by admin',
+              user_id=current_user.id)
+    
+    flash(f'User {user.username} has been blocked.', 'success')
+    return redirect(url_for('admin_users'))
 
-    # Get statistics
-    total_users = User.query.count()
-    total_groups = Group.query.count()
-    total_events = Event.query.count()
-    total_reports = Report.query.count()
 
-    # Recent reports
-    recent_reports = Report.query.order_by(Report.created_at.desc()).limit(5).all()
+@app.route('/admin/user/<int:user_id>/unblock', methods=['POST'])
+@login_required
+def admin_unblock_user(user_id):
+    """Unblock a blocked user"""
+    if not current_user.is_admin:
+        flash('Admin access required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    user = User.query.get_or_404(user_id)
+    
+    if not user.is_blocked:
+        flash(f'User {user.username} is not blocked.', 'info')
+        return redirect(url_for('admin_users'))
+    
+    user.is_blocked = False
+    db.session.commit()
+    
+    log_audit('user_unblocked',
+              f'User {user.username} was unblocked by admin',
+              user_id=current_user.id)
+    
+    flash(f'User {user.username} has been unblocked.', 'success')
+    return redirect(url_for('admin_users'))
 
-    # Recent users
-    recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
 
-    # Pending reports
-    pending_reports = Report.query.filter_by(status='pending').count()
-
-    # Public vs Private groups
-    public_groups = Group.query.filter_by(is_public=True).count()
-    private_groups = Group.query.filter_by(is_public=False).count()
-
-    # Admin users
-    admin_users = User.query.filter_by(is_admin=True).count()
-
-    return render_template('admin/dashboard.html',
-                         total_users=total_users,
-                         total_groups=total_groups,
-                         total_events=total_events,
-                         total_reports=total_reports,
-                         pending_reports=pending_reports,
-                         public_groups=public_groups,
-                         private_groups=private_groups,
-                         admin_users=admin_users,
-                         recent_reports=recent_reports,
-                         recent_users=recent_users)
+@app.route('/admin/user/<int:user_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_user(user_id):
+    """Delete a user account (admin only)"""
+    if not current_user.is_admin:
+        flash('Admin access required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    user = User.query.get_or_404(user_id)
+    
+    # Prevent admin from deleting themselves
+    if user.id == current_user.id:
+        flash('You cannot delete your own account.', 'warning')
+        return redirect(url_for('admin_users'))
+    
+    username = user.username
+    user_id_val = user.id
+    
+    # Delete user-created events to avoid FK constraints
+    for event in Event.query.filter_by(created_by_id=user_id_val).all():
+        db.session.delete(event)
+    
+    # Clear user-specific relationships
+    EventResponse.query.filter_by(user_id=user_id_val).delete(synchronize_session=False)
+    GroupInvitation.query.filter(
+        or_(GroupInvitation.inviter_id == user_id_val, GroupInvitation.invitee_id == user_id_val)
+    ).delete(synchronize_session=False)
+    GroupMember.query.filter_by(user_id=user_id_val).delete(synchronize_session=False)
+    Notification.query.filter_by(user_id=user_id_val).delete(synchronize_session=False)
+    GroupInviteToken.query.filter_by(used_by_id=user_id_val).update(
+        {GroupInviteToken.used_by_id: None},
+        synchronize_session=False
+    )
+    
+    # Transfer or delete owned groups
+    owned_groups = Group.query.filter_by(owner_id=user_id_val).all()
+    for group in owned_groups:
+        other_members = GroupMember.query.filter(
+            GroupMember.group_id == group.id,
+            GroupMember.user_id != user_id_val
+        ).order_by(GroupMember.joined_at.asc()).all()
+        
+        if not other_members:
+            GroupInviteToken.query.filter_by(group_id=group.id).delete(synchronize_session=False)
+            db.session.delete(group)
+            continue
+        
+        new_owner_member = other_members[0]
+        group.owner_id = new_owner_member.user_id
+        new_owner_member.role = 'admin'
+        db.session.commit()
+    
+    # Delete user
+    user_to_delete = db.session.get(User, user_id_val)
+    if user_to_delete:
+        db.session.delete(user_to_delete)
+    
+    db.session.commit()
+    
+    log_audit('user_deleted',
+              f'User {username} was deleted by admin',
+              user_id=current_user.id)
+    
+    flash(f'User {username} has been deleted.', 'success')
+    return redirect(url_for('admin_users'))
 
 
 @app.route('/gdpr/export', methods=['GET', 'POST'])

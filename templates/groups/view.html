@@ -8,12 +8,12 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <div>
-                    <h3 class="mb-0">{{ group.name }}</h3>
-                    <span class="badge bg-info">{{ group.group_type|title }}</span>
+                    <h3 class="mb-0">{{ group.name }}</h3><br>
+                    <span class="badge bg-info" style="font-size: 0.95rem; padding: 0.5rem 0.75rem;">{{ group.group_type|title }}</span>
                     {% if group.is_public %}
-                    <span class="badge bg-success">Public</span>
+                    <span class="badge bg-success" style="font-size: 0.95rem; padding: 0.5rem 0.75rem;">Public</span>
                     {% else %}
-                    <span class="badge bg-secondary">Private</span>
+                    <span class="badge bg-secondary" style="font-size: 0.95rem; padding: 0.5rem 0.75rem;">Private</span>
                     {% endif %}
                 </div>
                 {% if is_owner %}
@@ -53,7 +53,7 @@
                 <h5>Tags</h5>
                 <div class="mb-3">
                     {% for tag_name in group.get_tag_names() %}
-                    <span class="badge bg-primary">{{ tag_name }}</span>
+                    <span class="badge bg-primary" style="font-size: 0.9rem; padding: 0.5rem 0.75rem;">{{ tag_name }}</span>
                     {% endfor %}
                 </div>
                 <hr>
@@ -160,13 +160,13 @@
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-people"></i> Members ({{ members|length }})</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body" style="{% if members|length > 4 %}max-height: 500px; overflow-y: auto;{% endif %}">
                 <div class="list-group list-group-flush">
                     <div class="list-group-item d-flex justify-content-between align-items-center">
                         <span>
                             <i class="bi bi-star-fill text-warning"></i> {{ group.owner.username }}
                         </span>
-                        <span class="badge bg-primary">Owner</span>
+                        <span class="badge bg-primary" style="font-size: 0.85rem; padding: 0.5rem 0.75rem;">Owner</span>
                     </div>
                     {% for member in members %}
                         {% if member.user_id != group.owner_id %}
@@ -174,9 +174,9 @@
                             <div>
                                 <i class="bi bi-person"></i> {{ member.user.username }}
                                 {% if member.role == 'admin' %}
-                                <span class="badge bg-secondary ms-2">Admin</span>
+                                <span class="badge bg-secondary ms-2" style="font-size: 0.85rem; padding: 0.5rem 0.75rem;">Admin</span>
                                 {% else %}
-                                <span class="badge bg-light text-dark ms-2">Member</span>
+                                <span class="badge bg-light text-dark ms-2" style="font-size: 0.85rem; padding: 0.5rem 0.75rem;">Member</span>
                                 {% endif %}
                                 <small class="text-muted d-block">Joined {{ member.joined_at.strftime('%b %d, %Y') }}</small>
                             </div>
@@ -232,7 +232,7 @@
                 <h5 class="mb-0"><i class="bi bi-calendar-event"></i> Events</h5>
                 {% if is_member or is_owner %}
                 <a href="{{ url_for('event_create', group_id=group.id) }}" class="btn btn-sm btn-success">
-                    <i class="bi bi-plus-circle"></i> Create Event
+                    <i class="bi bi-plus-circle"></i> Create
                 </a>
                 {% endif %}
             </div>
@@ -244,10 +244,8 @@
                             <tr>
                                 <th>Event Name</th>
                                 <th>Date</th>
-                                <th>Time</th>
                                 <th>Location</th>
                                 <th>Status</th>
-                                <th style="width: 150px;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -258,8 +256,7 @@
                                         {{ event.name }}
                                     </a>
                                 </td>
-                                <td>{{ event.event_date.strftime('%B %d, %Y') }}</td>
-                                <td>{{ event.event_date.strftime('%I:%M %p') }}</td>
+                                <td>{{ event.event_date.strftime('%B %d, %Y') }} {{ event.event_date.strftime('%I:%M %p') }}</td>
                                 <td>{{ event.location_name }}</td>
                                 <td>
                                     {% if event.event_date_utc >= current_time %}
@@ -267,18 +264,6 @@
                                     {% else %}
                                     <span class="badge bg-secondary">Past</span>
                                     {% endif %}
-                                </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <a href="{{ url_for('event_view', group_id=group.id, event_id=event.id) }}" class="btn btn-outline-primary" title="View event details">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                        {% if is_owner or current_user.id == event.created_by_id %}
-                                        <a href="{{ url_for('event_edit', group_id=group.id, event_id=event.id) }}" class="btn btn-outline-warning" title="Edit event">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                        {% endif %}
-                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}

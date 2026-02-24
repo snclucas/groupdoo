@@ -59,6 +59,24 @@
                         {% endif %}
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-shield-lock"></i> Security Check
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text fw-bold">{{ captcha_text }} = </span>
+                            {{ form.captcha_answer(class="form-control" + (" is-invalid" if form.captcha_answer.errors else ""), placeholder="Answer", type="number") }}
+                            {% if form.captcha_answer.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.captcha_answer.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <small class="text-muted d-block mt-1">Solve this math problem to prove you're human</small>
+                    </div>
+
                     <div class="d-grid">
                         {{ form.submit(class="btn btn-primary") }}
                     </div>

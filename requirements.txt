@@ -8,3 +8,4 @@ WTForms==3.1.2
 PyMySQL==1.1.0
 cryptography==42.0.4
 email_validator
+

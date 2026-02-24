@@ -6,9 +6,9 @@
 <div class="container-fluid px-2 px-md-0">
     <div class="row justify-content-center">
         <div class="col-12 col-lg-11">
-            <h2 class="mb-4">
+            <h3 class="mb-4">
                 <i class="bi bi-calendar-event"></i> {{ _('My Events') }}
-            </h2>
+            </h3>
 
             {% if not attending_events and not all_group_events %}
             <div class="alert alert-info" role="alert">
@@ -22,10 +22,6 @@
                 <!-- Attending Events Section -->
                 {% if attending_events %}
                 <div class="mb-5">
-                    <h4 class="mb-3 mb-md-4">
-                        <i class="bi bi-check-circle text-success"></i>
-                        {{ _('Events I\'m Attending') }}
-                    </h4>
 
                     <!-- Desktop Table View -->
                     <div class="table-responsive d-none d-md-block">
@@ -35,10 +31,8 @@
                                     <th>{{ _('Event') }}</th>
                                     <th>{{ _('Group') }}</th>
                                     <th>{{ _('Date') }}</th>
-                                    <th>{{ _('Time') }}</th>
                                     <th class="d-none d-lg-table-cell">{{ _('Location') }}</th>
                                     <th>{{ _('Status') }}</th>
-                                    <th>{{ _('Actions') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -53,8 +47,7 @@
                                     <td>
                                         <small class="d-md-none">{{ event.event_date_utc.strftime('%b %d') }}</small>
                                         <small class="d-none d-md-inline">{{ event.event_date_utc.strftime('%a, %b %d') }}</small>
-                                    </td>
-                                    <td><small>{{ event.event_date_utc.strftime('%I:%M %p') }}</small></td>
+                                    <small>{{ event.event_date_utc.strftime('%I:%M %p') }}</small></td>
                                     <td class="d-none d-lg-table-cell"><small>{{ event.location_name[:25] }}{% if event.location_name|length > 25 %}...{% endif %}</small></td>
                                     <td>
                                         {% if event.event_date_utc > current_time %}
@@ -62,16 +55,6 @@
                                         {% else %}
                                         <span class="badge bg-secondary">{{ _('Past') }}</span>
                                         {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm" role="group">
-                                            <a href="{{ url_for('event_view', group_id=event.group_id, event_id=event.id) }}" class="btn btn-outline-primary" title="{{ _('View Details') }}">
-                                                <i class="bi bi-eye"></i>
-                                            </a>
-                                            <a href="{{ url_for('event_calendar_download', group_id=event.group_id, event_id=event.id) }}" class="btn btn-outline-success" title="{{ _('Add to Calendar') }}">
-                                                <i class="bi bi-calendar-plus"></i>
-                                            </a>
-                                        </div>
                                     </td>
                                 </tr>
                                 {% endfor %}

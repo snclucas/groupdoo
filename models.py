@@ -21,6 +21,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     language = db.Column(db.String(10), nullable=True, default='en')
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    is_blocked = db.Column(db.Boolean, default=False, nullable=False)
     email_verified = db.Column(db.Boolean, default=False, nullable=False)
     email_notifications = db.Column(db.Boolean, default=True, nullable=False)
     email_verify_token = db.Column(db.String(64), nullable=True, index=True)

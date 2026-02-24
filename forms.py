@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, SelectField, TimeField, DecimalField
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField, SelectField, TimeField, DecimalField, IntegerField
 from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Length, URL, Optional, NumberRange
 from wtforms.fields import DateField
 from models import User
@@ -69,7 +69,19 @@ class RegistrationForm(FlaskForm):
         DataRequired(),
         EqualTo('password', message='Passwords must match')
     ])
+    captcha_answer = IntegerField('Security Check', validators=[DataRequired()])
     submit = SubmitField('Register')
+
+    def validate_captcha_answer(self, field):
+        """Validate CAPTCHA answer"""
+        from flask import session
+        expected_answer = session.get('captcha_answer')
+        if expected_answer is None:
+            raise ValidationError('CAPTCHA session expired. Please refresh and try again.')
+        if int(field.data) != expected_answer:
+            raise ValidationError('Incorrect answer to security question.')
+        # Clear after validation attempt
+        session.pop('captcha_answer', None)
 
     def validate_username(self, username):
         """Check if username is already taken"""
